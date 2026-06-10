@@ -36,6 +36,10 @@ features:
     provider: mock
     frontend_safe: true
     cache: { enabled: false }
+  chat:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
 projects:
   demo:
     keys:

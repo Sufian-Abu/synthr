@@ -50,9 +50,10 @@ The MVP runs on SQLite, single-process, with regex guardrails and config-checked
 - ⬜ **Admin UI** for projects / keys / config
 
 ### Compatibility & features
-- 🟡 **Streaming (SSE)** — implemented per provider at the adapter layer (`stream_complete`); needs a feature/endpoint to surface it to callers
-- 🟡 **Tool calling** — adapter layer maps OpenAI-format tools in and normalized `tool_calls` out (incl. Gemini's `functionDeclarations`); needs an endpoint to expose it
-- ⬜ **Drop-in OpenAI-compatible endpoint** (`POST /v1/chat/completions`) — point the official OpenAI SDK / LangChain / etc. at Synthr and inherit the whole pipeline; this is what surfaces streaming + tools above *(parked: it re-exposes raw chat, in tension with the capability-layer positioning — revisit before building)*
+- ✅ **Drop-in OpenAI-compatible endpoint** (`POST /v1/chat/completions`) — official OpenAI SDK / LangChain / etc. point `base_url` at Synthr and inherit the whole pipeline
+- ✅ **Streaming (SSE)** — per-provider `stream_complete`, surfaced via the chat endpoint (`stream: true`)
+- ✅ **Tool calling** — OpenAI-format tools in, normalized `tool_calls` out (incl. Gemini's `functionDeclarations`), surfaced via the chat endpoint
+- ⬜ **Streamed cache + output redaction** — streaming currently bypasses both
 - ⬜ **ML PII** guardrail backend (e.g. Presidio) alongside regex
 - ⬜ **Embeddings-based** semantic cache (replace TF-IDF) + eval loop
 

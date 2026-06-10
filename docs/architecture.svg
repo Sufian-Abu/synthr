@@ -40,7 +40,7 @@
   <rect class="green"  x="326" y="112" width="142" height="42"/>
   <text class="t green-t" x="397" y="129">synthr</text><text class="s green-s" x="397" y="146">pip — Python</text>
   <rect class="orange" x="478" y="112" width="180" height="42"/>
-  <text class="t orange-t" x="568" y="129">REST API · CLI</text><text class="s orange-s" x="568" y="146">curl · synthr · HTTP</text>
+  <text class="t orange-t" x="568" y="129">REST · OpenAI SDK</text><text class="s orange-s" x="568" y="146">curl · openai · HTTP</text>
 
   <!-- arrows: engineers -> access -->
   <line x1="93"  y1="80" x2="120" y2="110" marker-end="url(#arrow)"/>

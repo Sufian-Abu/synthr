@@ -10,7 +10,7 @@ Stand it up once, configure it per project, and your apps just call the feature 
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-66%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-70%20passing-3fb950)
 ![Checks](https://img.shields.io/badge/checks-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -20,7 +20,7 @@ Stand it up once, configure it per project, and your apps just call the feature 
 
 ## Contents
 
-[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why not the OpenAI SDK?](#why-not-just-the-openai-sdk) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why not the OpenAI SDK?](#why-not-just-the-openai-sdk) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -71,7 +71,7 @@ A provider SDK (OpenAI's, Gemini's, anyone's) gives you a *raw model call*. You 
 | Cost is invisible until the bill arrives | Per-project cost + cache-hit dashboard |
 | Switching providers means code changes | Switch in config, zero app code |
 
-Synthr doesn't replace the model — it's the **policy, caching, and cost layer** in front of whichever model you pick.
+Synthr doesn't replace the model — it's the **policy, caching, and cost layer** in front of whichever model you pick. And if you're already on the OpenAI SDK, you don't have to choose: **point it at Synthr** and keep your code (see [OpenAI-compatible API](#openai-compatible-api)).
 
 ## Maturity & limitations
 
@@ -197,6 +197,42 @@ fmt.Println(out.Data.Summary)
 
 Full reference — auth, every endpoint, error codes — is in **[USAGE.md](USAGE.md)**.
 
+## OpenAI-compatible API
+
+Already invested in the OpenAI SDK (or LangChain, the Vercel AI SDK, LlamaIndex)? You don't have to rewrite anything — point `base_url` at Synthr and use your **project key**. The endpoint speaks the OpenAI Chat Completions wire format, and every call still runs through the full pipeline (auth, guardrails, rate limits, cache, provider fallback, cost logging).
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8000/v1",   # Synthr, not api.openai.com
+    api_key="sk_proj_...",                  # your Synthr project key
+)
+resp = client.chat.completions.create(
+    model="gemini-flash-latest",            # forwarded to the provider set in config
+    messages=[{"role": "user", "content": "Say hello in one word."}],
+)
+print(resp.choices[0].message.content)
+```
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({ baseURL: "http://localhost:8000/v1", apiKey: "sk_proj_..." });
+const r = await client.chat.completions.create({
+  model: "gemini-flash-latest",
+  messages: [{ role: "user", content: "Say hello in one word." }],
+});
+```
+
+- **Auth** — `Authorization: Bearer <project-key>` (what the SDK sends) or `X-Project-Key`.
+- **Provider** — chosen by the `chat` feature in your config, not by the caller (that's the point of Synthr). The request's `model` is forwarded to that provider and echoed back as the response `model`.
+- **Streaming** — `stream=True` returns OpenAI-style `chat.completion.chunk` SSE events.
+- **Tools** — pass `tools=[...]`; tool calls come back on `choices[0].message.tool_calls`, including for Gemini (its different `functionDeclarations` wire format is mapped under the hood).
+- **Errors** — returned in OpenAI's `{ "error": { … } }` shape, so the SDK's error handling works.
+
+> This re-exposes *raw chat* — the opposite of Synthr's capability-layer pitch (call `fillForm`, not chat). It's here for drop-in migration and the cases a named feature doesn't cover; reach for the [features](#features) first. **Note:** streamed responses skip the cache and output-PII redaction (input guardrails + rate limits still apply).
+
 ## Features
 
 Each feature takes plain inputs and returns structured data — no prompt engineering on your side.
@@ -224,7 +260,7 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Ollama | `ollama` | local, no key, $0 |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 
-> **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are wired at the provider layer today — they reach callers once the OpenAI-compatible endpoint on the [roadmap](ROADMAP.md) lands.
+> **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are reachable today through the [OpenAI-compatible API](#openai-compatible-api).
 
 ## Configuration
 
@@ -306,7 +342,7 @@ synthr/
 
 ```bash
 pip install -e ".[dev]"
-pytest                  # 63 gateway tests
+pytest                  # 67 gateway tests
 ruff check src tests    # lint
 mypy                    # type-check
 ```
@@ -315,7 +351,7 @@ mypy                    # type-check
 
 ## Status & roadmap
 
-Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It is a **working MVP, not a hardened production system**. The [Maturity & limitations](#maturity--limitations) table above is the honest breakdown, and **[ROADMAP.md](ROADMAP.md)** tracks the path to production: Postgres, Redis, background queue, circuit breaker, hashed-key auth, tracing, per-project budgets, published SDKs, and a drop-in OpenAI-compatible endpoint.
+Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It is a **working MVP, not a hardened production system**. The [Maturity & limitations](#maturity--limitations) table above is the honest breakdown, and **[ROADMAP.md](ROADMAP.md)** tracks the path to production: Postgres, Redis, background queue, circuit breaker, tracing, per-project budgets, and published SDKs.
 
 Deliberately not done yet:
 

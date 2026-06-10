@@ -53,6 +53,30 @@ Response envelope (every feature):
                              "request_id": "req_…", "usage": { "prompt_tokens": 0, "completion_tokens": 0 } } }
 ```
 Errors: HTTP 4xx/5xx with `{ "error": { "code": "...", "message": "...", "retry_after_seconds": 0 } }`.
+
+---
+
+## 3b. OpenAI-compatible endpoint
+
+`POST /v1/chat/completions` speaks the OpenAI Chat Completions wire format, so the official
+OpenAI SDKs (and LangChain, etc.) work unmodified — just change `base_url` and use a Synthr
+project key. Auth accepts `Authorization: Bearer <project-key>` or `X-Project-Key`.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8000/v1", api_key="sk_proj_...")
+client.chat.completions.create(
+    model="gemini-flash-latest",   # forwarded to the provider set for the `chat` feature
+    messages=[{"role": "user", "content": "Say hello in one word."}],
+    stream=False,                  # stream=True returns OpenAI-style SSE chunks
+)
+```
+
+The provider is chosen by the `chat` feature in config (not by the caller); `model` is
+forwarded to it. `tools` are passed through and returned on `message.tool_calls`. Errors use
+OpenAI's `{ "error": { ... } }` shape. Streamed responses skip cache + output redaction
+(input guardrails and rate limits still apply).
 Codes: `invalid_key · origin_not_allowed · feature_not_allowed · rate_limited · guardrail_blocked · provider_error · invalid_input · internal_error`.
 
 ### Endpoints

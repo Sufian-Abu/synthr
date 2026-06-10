@@ -104,6 +104,18 @@ features:
     guardrails:
       redact_output_pii: true
 
+  # Drop-in OpenAI-compatible endpoint: POST /v1/chat/completions.
+  # Point the official OpenAI SDK at this gateway; the request's `model` is
+  # forwarded to the provider chosen here. Supports streaming and tools.
+  chat:
+    provider: gemini
+    model: gemini-flash-latest
+    frontend_safe: false        # backend-only by default (raw chat)
+    cache:
+      enabled: false            # raw chat is rarely identical; off by default
+    guardrails:
+      block_pii: true
+
 
 # ── Projects & keys ──────────────────────────────────────────────────────
 # Each project gets keys and limits. Secret keys (sk_proj_) are for backends;
