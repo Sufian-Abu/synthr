@@ -10,7 +10,7 @@ Stand it up once, configure it per project, and your apps just call the feature 
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-47%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-53%20passing-3fb950)
 ![Checks](https://img.shields.io/badge/checks-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -306,7 +306,7 @@ synthr/
 
 ```bash
 pip install -e ".[dev]"
-pytest                  # 44 gateway tests
+pytest                  # 50 gateway tests
 ruff check src tests    # lint
 mypy                    # type-check
 ```
