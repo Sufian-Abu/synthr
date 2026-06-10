@@ -1,70 +1,130 @@
-# Synthr gateway config. Copy to synthr.config.yaml and edit.
-# Real provider keys live ONLY here. Engineers never see them.
+# ─────────────────────────────────────────────────────────────────────────
+#  Synthr gateway configuration
+#  Copy to synthr.config.yaml and edit. This file IS the product surface:
+#  one place decides who can call what, which provider runs it, and the limits.
+#  Real provider keys live ONLY here (via ${ENV}). Engineers never see them.
+# ─────────────────────────────────────────────────────────────────────────
 
 gateway:
   port: 8000
-  secret: "${SYNTHR_SECRET}"       # used to sign/validate; from env
-  db_path: synthr.db               # SQLite: cache, usage log, rate-limit counters (":memory:" = ephemeral)
+  secret: "${SYNTHR_SECRET}"   # signing secret, from the environment
+  db_path: synthr.db           # SQLite store: cache + usage + rate-limit counters
+                               # use ":memory:" for ephemeral, or /data/synthr.db in Docker
 
-# Configure only the providers you use. All are optional.
-# openai / grok / ollama all speak the OpenAI chat API (one adapter, different base_url).
-# Quote ${ENV} placeholders so they're valid YAML; they're expanded after parsing.
+
+# ── Providers ────────────────────────────────────────────────────────────
+# Configure only the ones you use — all are optional.
+# openai / grok / groq / ollama all speak the OpenAI chat API (one adapter,
+# different base_url). Quote ${ENV} placeholders so the YAML stays valid;
+# they're expanded after parsing.
 providers:
-  gemini: { kind: gemini, api_key: "${GEMINI_KEY}" }
-  openai: { kind: openai, api_key: "${OPENAI_KEY}" }
-  grok:   { kind: grok,   api_key: "${XAI_KEY}" }   # xAI Grok (keys: xai-...)
-  groq:   { kind: groq,   api_key: "${GROQ_KEY}" }  # Groq fast inference (keys: gsk_...)
-  ollama: { kind: ollama }          # local, no key, $0
-  rembg:  { kind: rembg }           # local background removal (needs the 'vision' extra)
-  mock:   { kind: mock }            # deterministic, no network — for dev/CI without any key
+  gemini:
+    kind: gemini
+    api_key: "${GEMINI_KEY}"
 
-# Each capability is mapped to a provider HERE. Swapping a provider = one line, zero app code.
+  openai:
+    kind: openai
+    api_key: "${OPENAI_KEY}"
+
+  grok:
+    kind: grok
+    api_key: "${XAI_KEY}"      # xAI Grok — keys start with xai-
+
+  groq:
+    kind: groq
+    api_key: "${GROQ_KEY}"     # Groq fast inference — keys start with gsk_
+
+  ollama:
+    kind: ollama               # local, no key, $0
+
+  rembg:
+    kind: rembg                # local background removal (needs the 'vision' extra)
+
+  mock:
+    kind: mock                 # deterministic, no network — for dev/CI without any key
+
+
+# ── Features ───────────────────────────────────────────────────────────────
+# Each capability is mapped to a provider HERE. Swapping a provider is one line,
+# zero application code.
 features:
   fillForm:
-    provider: gemini                # <- change to openai / grok / groq / ollama / mock
-    model: gemini-flash-latest      # Gemini free tier — easiest live test
-    fallback: { provider: ollama, model: llama3.2 }   # auto-failover if primary errors
+    provider: gemini                   # change to openai / grok / groq / ollama / mock
+    model: gemini-flash-latest         # Gemini free tier — easiest live test
     frontend_safe: true
-    cache: { enabled: true, mode: exact, ttl_minutes: 60 }
+    fallback:
+      provider: ollama                 # auto-failover if the primary errors
+      model: llama3.2
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 60
     guardrails:
-      block_pii: true               # blocks credit cards / SSNs / emails / phones before sending
+      block_pii: true                  # block cards / SSNs / emails / phones before sending
       max_prompt_length: 4000
       blocked_keywords: []
 
   image:
-    provider: gemini                # image-capable: gemini / openai / grok
+    provider: gemini                   # image-capable: gemini / openai / grok
     model: imagen-3.0-generate-002
-    frontend_safe: false            # cost control: backend-only by default
-    cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
+    frontend_safe: false               # cost control: backend-only by default
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 1440
 
   removeBackground:
-    provider: rembg                 # non-LLM, local (install the 'vision' extra)
+    provider: rembg                    # non-LLM, local (install the 'vision' extra)
     model: u2net
     frontend_safe: true
-    cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 1440
 
   summarize:
     provider: gemini
     model: gemini-flash-latest
     frontend_safe: true
-    cache: { enabled: true, mode: exact, ttl_minutes: 60 }
-    guardrails: { redact_output_pii: true }   # scrub PII from the summary
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 60
+    guardrails:
+      redact_output_pii: true          # scrub PII from the summary
 
   translate:
     provider: gemini
     model: gemini-flash-latest
     frontend_safe: true
-    cache: { enabled: true, mode: exact, ttl_minutes: 60 }
-    guardrails: { redact_output_pii: true }
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 60
+    guardrails:
+      redact_output_pii: true
 
+
+# ── Projects & keys ──────────────────────────────────────────────────────
+# Each project gets keys and limits. Secret keys (sk_proj_) are for backends;
+# public keys (pk_proj_) are browser-safe and locked to an origin allowlist.
 projects:
   demo:
     keys:
-      - { id: sk_proj_demo_secret, type: secret }
-      - { id: pk_proj_demo_public, type: public, allowed_origins: ["http://localhost:3000"] }
+      - id: sk_proj_demo_secret
+        type: secret
+      - id: pk_proj_demo_public
+        type: public
+        allowed_origins:
+          - http://localhost:3000
     limits:
-      per_user: { daily_requests: 50 }
+      per_user:
+        daily_requests: 50
 
+
+# ── Defaults ───────────────────────────────────────────────────────────────
+# Applied to any project that doesn't set its own limits.
 defaults:
   limits:
-    per_user: { daily_requests: 100 }
+    per_user:
+      daily_requests: 100

@@ -1,10 +1,10 @@
-"""post_json retry behaviour — transient 5xx are retried, then succeed or raise."""
+"""post_json retry behaviour — transient 5xx are retried, then succeed or raise a typed error."""
 
 from __future__ import annotations
 
-import httpx
 import pytest
 
+from synthr_gateway.core.errors import SynthrError
 from synthr_gateway.providers import http as http_mod
 
 
@@ -12,14 +12,10 @@ class _Resp:
     def __init__(self, status: int) -> None:
         self.status_code = status
         self.headers: dict = {}
+        self.text = ""
 
     def json(self) -> dict:
         return {"ok": True}
-
-    def raise_for_status(self) -> None:
-        if self.status_code >= 400:
-            req = httpx.Request("POST", "http://x")
-            raise httpx.HTTPStatusError("err", request=req, response=httpx.Response(self.status_code, request=req))
 
 
 class _Client:
@@ -56,11 +52,20 @@ async def test_retries_then_succeeds(monkeypatch) -> None:
 
 async def test_raises_after_exhausting_retries(monkeypatch) -> None:
     _patch_statuses(monkeypatch, [503, 503, 503])
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(SynthrError) as exc:
         await http_mod.post_json("http://x", json={})
+    assert exc.value.code == "provider_error"
 
 
 async def test_non_retryable_4xx_raises_immediately(monkeypatch) -> None:
     _patch_statuses(monkeypatch, [400, 200, 200])  # 2nd/3rd never reached
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(SynthrError) as exc:
         await http_mod.post_json("http://x", json={})
+    assert exc.value.code == "provider_error"
+
+
+async def test_429_maps_to_provider_rate_limited(monkeypatch) -> None:
+    _patch_statuses(monkeypatch, [429, 429, 429])
+    with pytest.raises(SynthrError) as exc:
+        await http_mod.post_json("http://x", json={})
+    assert exc.value.code == "provider_rate_limited"

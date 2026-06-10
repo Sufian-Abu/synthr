@@ -7,6 +7,7 @@ config selects the default base URL. OpenAI and Grok also support `/images/gener
 
 from __future__ import annotations
 
+from ..core import errors
 from .base import Provider
 from .http import post_json
 from .types import Capability, CompletionResult, ImageResult, Message
@@ -55,9 +56,17 @@ class OpenAICompatProvider(Provider):
             payload["response_format"] = {"type": "json_object"}
 
         data = await post_json(f"{self.base_url}/chat/completions", json=payload, headers=self._headers)
+        try:
+            choice = data["choices"][0]
+            content = choice["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise errors.provider_invalid_response(f"{self.kind}: malformed completion response.") from exc
+        if choice.get("finish_reason") == "content_filter":
+            raise errors.provider_safety_blocked(f"{self.kind} blocked the content.")
+
         usage = data.get("usage", {})
         return CompletionResult(
-            text=data["choices"][0]["message"]["content"],
+            text=content,
             model=model or "",
             usage={
                 "prompt_tokens": usage.get("prompt_tokens", 0),

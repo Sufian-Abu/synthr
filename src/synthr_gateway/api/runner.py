@@ -21,9 +21,22 @@ from ..usage import UsageLog
 # run(provider, model) -> (data, usage)
 FeatureRun = Callable[[Provider, str | None], Awaitable[tuple[dict, dict]]]
 
+# Errors that mean "this provider couldn't serve it — try the fallback".
+# Excludes provider_safety_blocked: a safety refusal is a content decision, not an
+# outage, so blindly retrying it on another provider is wrong.
+FAILOVER_CODES = {
+    "provider_error",
+    "provider_timeout",
+    "provider_rate_limited",
+    "provider_invalid_response",
+}
+
 
 async def _run_with_fallback(run, providers, feature_cfg, capability):
-    """Run on the primary; on provider_error, try the fallback. Returns (data, usage, provider, model)."""
+    """Run on the primary; on a failover-eligible provider error, try the fallback.
+
+    Returns (data, usage, provider, model).
+    """
     provider = providers.get(feature_cfg.provider)
     if provider is None:
         raise errors.internal_error(f"Provider {feature_cfg.provider!r} is not available.")
@@ -35,7 +48,7 @@ async def _run_with_fallback(run, providers, feature_cfg, capability):
         return data, usage, feature_cfg.provider, feature_cfg.model
     except errors.SynthrError as exc:
         fb = feature_cfg.fallback
-        if exc.code != "provider_error" or fb is None:
+        if exc.code not in FAILOVER_CODES or fb is None:
             raise
         fb_provider = providers.get(fb.provider)
         if fb_provider is None or capability not in fb_provider.capabilities:

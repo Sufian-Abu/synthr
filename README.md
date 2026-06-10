@@ -232,18 +232,26 @@ features:
   fillForm:
     provider: gemini
     model: gemini-flash-latest
-    fallback: { provider: ollama, model: llama3.2 }   # used if the primary errors
     frontend_safe: true
-    cache: { enabled: true, mode: exact }
+    fallback:
+      provider: ollama              # used if the primary errors
+      model: llama3.2
+    cache:
+      enabled: true
+      mode: exact
     guardrails:
-      block_pii: true            # block a card/SSN/email before it reaches the model
+      block_pii: true               # block a card / SSN / email before it reaches the model
       max_prompt_length: 4000
 
   summarize:
     provider: groq
     model: llama-3.3-70b-versatile
-    cache: { enabled: true, mode: similar, similarity_threshold: 0.9 }   # TF-IDF cache
-    guardrails: { redact_output_pii: true }            # scrub PII out of the response
+    cache:
+      enabled: true
+      mode: similar                 # TF-IDF semantic cache
+      similarity_threshold: 0.9
+    guardrails:
+      redact_output_pii: true       # scrub PII out of the response
 ```
 
 ## Under the hood

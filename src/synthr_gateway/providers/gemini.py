@@ -6,6 +6,7 @@ is requested via `responseMimeType` + `responseSchema`.
 
 from __future__ import annotations
 
+from ..core import errors
 from .base import Provider
 from .http import post_json
 from .types import Capability, CompletionResult, ImageResult, Message
@@ -72,7 +73,18 @@ class GeminiProvider(Provider):
         url = f"{self.BASE}/models/{model}:generateContent?key={self.api_key}"
         data = await post_json(url, json=body)
 
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        candidates = data.get("candidates")
+        if not candidates:
+            if (data.get("promptFeedback") or {}).get("blockReason"):
+                raise errors.provider_safety_blocked("Gemini blocked the prompt on safety grounds.")
+            raise errors.provider_invalid_response("Gemini returned no candidates.")
+        candidate = candidates[0]
+        if candidate.get("finishReason") == "SAFETY":
+            raise errors.provider_safety_blocked("Gemini blocked the response on safety grounds.")
+        try:
+            text = candidate["content"]["parts"][0]["text"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise errors.provider_invalid_response("Gemini completion response was malformed.") from exc
         meta = data.get("usageMetadata", {})
         return CompletionResult(
             text=text,

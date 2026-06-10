@@ -46,5 +46,21 @@ def provider_error(message: str) -> SynthrError:
     return SynthrError("provider_error", message, 502)
 
 
+def provider_timeout(message: str = "The provider timed out.") -> SynthrError:
+    return SynthrError("provider_timeout", message, 504)
+
+
+def provider_rate_limited(message: str = "The provider rate-limited the request.", retry_after: int | None = None) -> SynthrError:
+    return SynthrError("provider_rate_limited", message, 429, retry_after=retry_after)
+
+
+def provider_invalid_response(message: str = "The provider returned an unexpected response.") -> SynthrError:
+    return SynthrError("provider_invalid_response", message, 502)
+
+
+def provider_safety_blocked(message: str = "The provider blocked the request on safety grounds.") -> SynthrError:
+    return SynthrError("provider_safety_blocked", message, 400)
+
+
 def internal_error(message: str) -> SynthrError:
     return SynthrError("internal_error", message, 500)
