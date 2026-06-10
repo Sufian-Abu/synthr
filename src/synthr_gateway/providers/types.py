@@ -19,11 +19,22 @@ class Message:
 
 
 @dataclass
+class ToolCall:
+    """A tool/function the model asked to call. `arguments` is a raw JSON string."""
+
+    id: str
+    name: str
+    arguments: str
+
+
+@dataclass
 class CompletionResult:
     text: str
     model: str
     usage: dict = field(default_factory=dict)  # {prompt_tokens, completion_tokens}
     raw: dict | None = None
+    tool_calls: list[ToolCall] = field(default_factory=list)
+    finish_reason: str | None = None
 
 
 @dataclass

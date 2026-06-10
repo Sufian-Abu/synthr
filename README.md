@@ -10,7 +10,7 @@ Stand it up once, configure it per project, and your apps just call the feature 
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-53%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-66%20passing-3fb950)
 ![Checks](https://img.shields.io/badge/checks-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -88,7 +88,7 @@ Synthr runs end-to-end today, but be clear-eyed about where it is. An honest map
 | **Slow tasks** (image / bg) | inline, blocking the request | background queue + job polling |
 | **Observability** | usage log + dashboard | tracing, metrics, per-project budgets |
 | **Delivery** | install from this repo | published SDKs · automated releases |
-| **Providers** | one OpenAI-compatible adapter | per-provider handling (see note under [Providers](#providers)) |
+| **Providers** | per-provider adapters (JSON mode · image · typed errors · streaming · tools) | broader model coverage · live provider conformance tests |
 
 **Good for:** internal tools, prototypes, single-team deployments, and learning how an AI gateway fits together. **Not yet for:** untrusted multi-tenant traffic or high-concurrency production without the hardening above. The path to closing these gaps lives in **[ROADMAP.md](ROADMAP.md)**; the security model is in **[SECURITY.md](SECURITY.md)**.
 
@@ -224,7 +224,7 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Ollama | `ollama` | local, no key, $0 |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 
-> **Adapter note.** OpenAI, Grok, Groq, and Ollama share **one** OpenAI-compatible adapter. They're close, not identical — JSON mode, the image API, error shapes, streaming, and tool-calling diverge between them. The shared adapter covers the common path; provider-specific quirks are handled case by case and are an ongoing area of work.
+> **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are wired at the provider layer today — they reach callers once the OpenAI-compatible endpoint on the [roadmap](ROADMAP.md) lands.
 
 ## Configuration
 
@@ -306,7 +306,7 @@ synthr/
 
 ```bash
 pip install -e ".[dev]"
-pytest                  # 50 gateway tests
+pytest                  # 63 gateway tests
 ruff check src tests    # lint
 mypy                    # type-check
 ```

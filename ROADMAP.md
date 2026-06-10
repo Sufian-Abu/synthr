@@ -35,9 +35,9 @@ The MVP runs on SQLite, single-process, with regex guardrails and config-checked
 - ⬜ **Background queue** (arq/Celery/RQ) for slow image/background tasks + a job-polling endpoint
 
 ### Reliability
-- 🟡 **Fallback strategy** — fail over on timeout / rate-limit / invalid response / safety block (not just provider error)
+- ✅ **Structured provider error mapping** — per-provider error bodies → typed codes across all adapters
+- 🟡 **Fallback strategy** — fails over on timeout / rate-limit / invalid response (safety blocks deliberately don't)
 - ⬜ **Circuit breaker** + provider health checks
-- ⬜ **Structured provider error mapping** across adapters (typed codes)
 
 ### Auth & security
 - ✅ **Hashed project keys** (sha256, constant-time) + scopes + expiry + revoke + audit-on-failure; `synthr keygen` emits the hash
@@ -50,8 +50,9 @@ The MVP runs on SQLite, single-process, with regex guardrails and config-checked
 - ⬜ **Admin UI** for projects / keys / config
 
 ### Compatibility & features
-- ⬜ **Drop-in OpenAI-compatible endpoint** (`POST /v1/chat/completions`) — point the official OpenAI SDK / LangChain / etc. at Synthr and inherit the whole pipeline *(deliberately parked: it re-exposes raw chat, which is in tension with the capability-layer positioning — revisit before building)*
-- ⬜ **Streaming** (SSE) for text features
+- 🟡 **Streaming (SSE)** — implemented per provider at the adapter layer (`stream_complete`); needs a feature/endpoint to surface it to callers
+- 🟡 **Tool calling** — adapter layer maps OpenAI-format tools in and normalized `tool_calls` out (incl. Gemini's `functionDeclarations`); needs an endpoint to expose it
+- ⬜ **Drop-in OpenAI-compatible endpoint** (`POST /v1/chat/completions`) — point the official OpenAI SDK / LangChain / etc. at Synthr and inherit the whole pipeline; this is what surfaces streaming + tools above *(parked: it re-exposes raw chat, in tension with the capability-layer positioning — revisit before building)*
 - ⬜ **ML PII** guardrail backend (e.g. Presidio) alongside regex
 - ⬜ **Embeddings-based** semantic cache (replace TF-IDF) + eval loop
 

@@ -30,6 +30,7 @@ class MockProvider(Provider):
         model: str | None = None,
         json_schema: dict | None = None,
         temperature: float = 0.0,
+        tools: list[dict] | None = None,
     ) -> CompletionResult:
         if json_schema and "properties" in json_schema:
             text = json.dumps({key: None for key in json_schema["properties"]})

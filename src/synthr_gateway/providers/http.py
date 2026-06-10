@@ -1,14 +1,16 @@
-"""Shared HTTP for provider adapters: POST JSON with retry on transient failures.
+"""Shared HTTP for provider adapters: POST JSON (with retry) and POST SSE (streaming).
 
-Retries 429 and 5xx (and network/timeout errors) with exponential backoff, honoring
-a numeric Retry-After header when present. Every terminal failure is mapped to a typed
-`SynthrError` (provider_timeout / provider_rate_limited / provider_error /
-provider_invalid_response) so the runner can decide whether to fail over.
+Retries 429 and 5xx (and network/timeout errors) with exponential backoff, honoring a
+numeric Retry-After header when present. Every terminal failure is mapped to a typed
+`SynthrError`. Adapters may pass a `classify_error` callback to translate their provider's
+own error *body* into a typed code; otherwise a generic status-based mapping is used.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json as jsonlib
+from collections.abc import AsyncIterator, Callable
 
 import httpx
 
@@ -16,18 +18,30 @@ from ..core import errors
 
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
-
-def _retry_after(resp: httpx.Response | None) -> int | None:
-    if resp is not None:
-        ra = resp.headers.get("retry-after", "")
-        if ra.isdigit():
-            return int(ra)
-    return None
+# (status, body_text, headers) -> a typed error, or None to fall back to generic mapping.
+ErrorClassifier = Callable[[int, str, "httpx.Headers | dict"], "errors.SynthrError | None"]
 
 
-def _delay(backoff: float, attempt: int, resp: httpx.Response | None = None) -> float:
-    ra = _retry_after(resp)
+def _retry_after(headers: httpx.Headers | dict | None) -> int | None:
+    ra = (headers or {}).get("retry-after", "")
+    return int(ra) if isinstance(ra, str) and ra.isdigit() else None
+
+
+def _delay(backoff: float, attempt: int, headers: httpx.Headers | dict | None = None) -> float:
+    ra = _retry_after(headers)
     return float(ra) if ra is not None else backoff * (2**attempt)
+
+
+def _terminal_error(status: int, text: str, headers, classify_error: ErrorClassifier | None) -> errors.SynthrError:
+    if classify_error:
+        mapped = classify_error(status, text, headers)
+        if mapped is not None:
+            return mapped
+    if status == 429:
+        return errors.provider_rate_limited(retry_after=_retry_after(headers))
+    if status >= 500:
+        return errors.provider_error(f"Provider returned HTTP {status}.")
+    return errors.provider_error(f"Provider rejected the request (HTTP {status}). {text[:200]}".strip())
 
 
 async def post_json(
@@ -38,6 +52,7 @@ async def post_json(
     timeout: float = 60.0,
     retries: int = 3,
     backoff: float = 0.5,
+    classify_error: ErrorClassifier | None = None,
 ) -> dict:
     """POST `json` and return the parsed response, retrying transient failures.
 
@@ -61,21 +76,46 @@ async def post_json(
             continue
 
         if resp.status_code in RETRYABLE_STATUS and not is_last:
-            await asyncio.sleep(_delay(backoff, attempt, resp))
+            await asyncio.sleep(_delay(backoff, attempt, resp.headers))
             continue
 
-        # Terminal response — map status to a typed error or parse the body.
-        status = resp.status_code
-        if status == 429:
-            raise errors.provider_rate_limited(retry_after=_retry_after(resp))
-        if status >= 500:
-            raise errors.provider_error(f"Provider returned HTTP {status}.")
-        if status >= 400:
-            detail = getattr(resp, "text", "") or ""
-            raise errors.provider_error(f"Provider rejected the request (HTTP {status}). {detail[:200]}".strip())
+        if resp.status_code >= 400:
+            raise _terminal_error(resp.status_code, getattr(resp, "text", "") or "", resp.headers, classify_error)
         try:
             return resp.json()
         except ValueError as exc:
             raise errors.provider_invalid_response("Provider response was not valid JSON.") from exc
 
     raise RuntimeError("unreachable")  # loop always returns or raises
+
+
+async def post_sse(
+    url: str,
+    *,
+    json: dict,
+    headers: dict | None = None,
+    timeout: float = 120.0,
+    classify_error: ErrorClassifier | None = None,
+) -> AsyncIterator[dict]:
+    """POST and yield parsed JSON objects from a Server-Sent-Events stream (`data:` lines).
+
+    Stops on the `[DONE]` sentinel. Errors map to typed `SynthrError` (no retry on a stream).
+    """
+    hdrs = {**(headers or {}), "Accept": "text/event-stream"}
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        async with client.stream("POST", url, json=json, headers=hdrs) as resp:
+            if resp.status_code >= 400:
+                body = (await resp.aread()).decode("utf-8", "replace")
+                raise _terminal_error(resp.status_code, body, resp.headers, classify_error)
+            async for raw in resp.aiter_lines():
+                line = raw.strip()
+                if not line or line.startswith(":"):  # blank or comment/keepalive
+                    continue
+                if line.startswith("data:"):
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        return
+                    try:
+                        yield jsonlib.loads(data)
+                    except ValueError:
+                        continue

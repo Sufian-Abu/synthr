@@ -1,22 +1,26 @@
 """Provider interface. Every backend implements this, so features stay provider-agnostic.
 
 Each capability method defaults to "not supported" and is overridden by providers that
-offer it; `capabilities` declares which ones, and the API layer checks it before calling.
+offer it; `capabilities` declares which kinds, and `supports_streaming` / `supports_tools`
+declare the optional text modes. The API layer checks these before calling.
 """
 
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import AsyncIterator
 
 from ..core import errors
 from .types import Capability, CompletionResult, ImageResult, Message
 
 
 class Provider(ABC):
-    """Subclasses set `name`, `capabilities`, and override the methods they support."""
+    """Subclasses set `name`, `capabilities`, the optional flags, and override what they support."""
 
     name: str
     capabilities: set[Capability] = set()
+    supports_streaming: bool = False
+    supports_tools: bool = False
 
     async def complete(
         self,
@@ -25,10 +29,23 @@ class Provider(ABC):
         model: str | None = None,
         json_schema: dict | None = None,
         temperature: float = 0.0,
+        tools: list[dict] | None = None,
     ) -> CompletionResult:
-        """Run a text completion. If json_schema is given, the provider is asked to
-        return JSON conforming to it (enforced natively where supported)."""
+        """Run a text completion. If `json_schema` is given, the provider returns JSON
+        conforming to it (enforced natively where supported). If `tools` is given (OpenAI
+        function-tool format), tool calls come back on `CompletionResult.tool_calls`."""
         raise errors.provider_error(f"Provider {self.name!r} does not support text completion.")
+
+    async def stream_complete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        temperature: float = 0.0,
+    ) -> AsyncIterator[str]:
+        """Yield text deltas as they arrive. Only providers with `supports_streaming` override this."""
+        raise errors.provider_error(f"Provider {self.name!r} does not support streaming.")
+        yield ""  # pragma: no cover — marks this as an async generator
 
     async def generate_image(
         self,
