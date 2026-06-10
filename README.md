@@ -90,7 +90,7 @@ Synthr runs end-to-end today, but be clear-eyed about where it is. An honest map
 | **Delivery** | install from this repo | published SDKs · automated releases |
 | **Providers** | one OpenAI-compatible adapter | per-provider handling (see note under [Providers](#providers)) |
 
-**Good for:** internal tools, prototypes, single-team deployments, and learning how an AI gateway fits together. **Not yet for:** untrusted multi-tenant traffic or high-concurrency production without the hardening above. The path to closing these gaps lives in **[ROADMAP.md](ROADMAP.md)**.
+**Good for:** internal tools, prototypes, single-team deployments, and learning how an AI gateway fits together. **Not yet for:** untrusted multi-tenant traffic or high-concurrency production without the hardening above. The path to closing these gaps lives in **[ROADMAP.md](ROADMAP.md)**; the security model is in **[SECURITY.md](SECURITY.md)**.
 
 ## Architecture
 
@@ -156,6 +156,8 @@ import { AI } from "synthr-sdk";
 const ai = new AI({ url: "http://localhost:8000", key: "pk_proj_demo_public" });
 const { values } = await ai.fillForm([{ name: "brand", type: "string" }], "Nike Air Max");
 ```
+
+A full **Next.js** example — secret key on the server, public key in the browser, end to end — is in **[examples/nextjs/](examples/nextjs/)**.
 
 ### REST (any language)
 
