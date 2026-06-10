@@ -23,9 +23,17 @@ Stand it up once, configure it per project, and your apps just call the feature 
 
 ## The problem
 
-Your projects keep rebuilding the same AI plumbing — provider setup, key management, rate limiting, caching, PII filtering, cost tracking — slightly differently in every repo.
+Every project that adds AI re-solves the same problems from scratch — then maintains them, separately, in each repo:
 
-**Synthr is the shared layer that handles all of it.** Run one Docker container for the team, drop the SDK into any project, and call the feature you need. One config. Every project. No repeated setup.
+- **Provider wiring** — pick Gemini/OpenAI/…, learn its SDK, redo it in the next project.
+- **Key security** — real API keys leak into frontends or get scattered across `.env` files.
+- **Runaway cost** — one user (or a runaway loop) burns the whole API budget.
+- **Paying twice** — the same prompt is sent and billed again and again.
+- **Sensitive data** — credit cards / emails get shipped to the model with nothing stopping them.
+- **No visibility** — nobody knows what AI actually costs, per project.
+- **Lock-in** — switching providers means rewriting code.
+
+**Synthr solves all of these once, in one place.** Run one Docker container for the team, drop the SDK into any project, and call the feature you need — auth, caching, rate limits, guardrails, fallback, and cost tracking come built in. One config. Every project. No repeated setup.
 
 ## What Synthr is
 
@@ -40,66 +48,9 @@ Each feature's provider is chosen in one config file, so pointing form-fill at G
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    subgraph CLIENTS["🧑‍💻 Your projects — any project, any stack"]
-        direction LR
-        FE["Frontend<br/>React · Vue · JS"]
-        BE["Backend<br/>Python · Node · Go"]
-        OT["Mobile · CLI · other"]
-    end
-
-    subgraph ACCESS["One API — same for everyone"]
-        direction LR
-        PIP["pip SDK<br/>synthr"]
-        NPM["npm SDK<br/>synthr-sdk"]
-        REST["REST<br/>any HTTP client"]
-    end
-
-    CLIENTS ==>|X-Project-Key| ACCESS
-    ACCESS ==> PIPE
-
-    subgraph GW["⚙️ Synthr Gateway — one Docker container"]
-        direction TB
-        subgraph PIPE["Per-request pipeline"]
-            direction LR
-            A["Auth &<br/>project keys"] --> G["Guardrails<br/>PII · keywords<br/>· output redaction"] --> R["Rate limiter<br/>per user<br/>day/week/month"] --> C["Cache<br/>exact + TF-IDF<br/>semantic"] --> O["Token<br/>optimizer"]
-        end
-        O --> RT["🔀 Provider router — automatic fallback chain"]
-        CFG["📄 synthr.config.yaml — providers · limits · guardrails · cache"] -. governs .-> PIPE
-        RT -. logs usage + cost .-> DASH["📊 Usage dashboard — cost · cache hits · blocks"]
-    end
-
-    RT ==> PROV
-
-    subgraph PROV["🤖 AI providers — chosen per feature in config"]
-        direction LR
-        P1["Gemini"]
-        P2["OpenAI"]
-        P3["Grok"]
-        P4["Groq"]
-        P5["Ollama<br/>local · $0"]
-        P6["rembg<br/>local vision"]
-    end
-
-    classDef client fill:#eef0ff,stroke:#5b4fc4,color:#1e1b4b;
-    classDef access fill:#e1f5ee,stroke:#0f6e56,color:#08503f;
-    classDef step fill:#dcefe6,stroke:#0f6e56,color:#08503f;
-    classDef router fill:#fff3d6,stroke:#9a6a00,color:#5a3d00;
-    classDef cfg fill:#fdeede,stroke:#b1722a,color:#6e4216;
-    classDef dash fill:#eef7df,stroke:#5f8f1a,color:#33500a;
-    classDef prov fill:#fde9e3,stroke:#b1492a,color:#6e2a16;
-
-    class FE,BE,OT client;
-    class PIP,NPM,REST access;
-    class A,G,R,C,O step;
-    class RT router;
-    class CFG cfg;
-    class DASH dash;
-    class P1,P2,P3,P4,P5,P6 prov;
-    style GW fill:#eaf2fb,stroke:#1f6fb2,color:#0c3a63;
-    style PIPE fill:#f3fbf7,stroke:#0f6e56,color:#08503f;
-```
+<p align="center">
+  <img src="docs/architecture.svg" alt="Synthr architecture — engineers → SDK/REST → gateway (auth, cache, rate limit, guardrails, optimizer, router) → providers" width="720">
+</p>
 
 Every request walks the same path: **authenticate → guardrails → rate limit → cache → optimize → route (with fallback) → log usage**. Each step is a small, independent module, so adding a feature or a provider doesn't touch the rest.
 
