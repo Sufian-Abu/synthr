@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Header
 
-from ...cache import Cache
+from ...cache import CacheManager
 from ...config import Config
 from ...features.removebg import RemoveBackgroundRequest, remove_background
 from ...providers import Capability, Provider
@@ -28,7 +28,7 @@ async def remove_background_route(
     body: RemoveBackgroundRequest,
     config: Config = Depends(get_config),
     providers: dict[str, Provider] = Depends(get_providers),
-    cache: Cache = Depends(get_cache),
+    cache: CacheManager = Depends(get_cache),
     limiter: RateLimiter = Depends(get_limiter),
     usage: UsageLog = Depends(get_usage),
     x_project_key: str | None = Header(default=None),

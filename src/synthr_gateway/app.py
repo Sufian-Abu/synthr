@@ -13,15 +13,14 @@ from fastapi.responses import JSONResponse
 from .api.health import router as health_router
 from .api.v1.router import router as v1_router
 from .cache import CacheManager
-from .dashboard import router as dashboard_router
 from .config import load_config
 from .core.envelope import error_payload
 from .core.errors import SynthrError
+from .dashboard import router as dashboard_router
 from .providers.registry import build_providers
 from .ratelimit import RateLimiter
 from .storage import Database
 from .usage import UsageLog
-
 
 DESCRIPTION = """
 Self-hosted, batteries-included **AI-capabilities** gateway.

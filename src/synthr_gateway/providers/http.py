@@ -49,14 +49,14 @@ async def post_json(
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 resp = await client.post(url, json=json, headers=headers)
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as exc:
             if is_last:
-                raise errors.provider_timeout()
+                raise errors.provider_timeout() from exc
             await asyncio.sleep(_delay(backoff, attempt))
             continue
         except httpx.TransportError as exc:
             if is_last:
-                raise errors.provider_error(f"Network error contacting provider: {exc}")
+                raise errors.provider_error(f"Network error contacting provider: {exc}") from exc
             await asyncio.sleep(_delay(backoff, attempt))
             continue
 

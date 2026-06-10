@@ -14,7 +14,7 @@ class RemoveBackgroundRequest(BaseModel):
     }
 
     @model_validator(mode="after")
-    def _require_one(self) -> "RemoveBackgroundRequest":
+    def _require_one(self) -> RemoveBackgroundRequest:
         if not self.image and not self.image_url:
             raise ValueError("provide either 'image' (base64/data-URI) or 'image_url'")
         return self

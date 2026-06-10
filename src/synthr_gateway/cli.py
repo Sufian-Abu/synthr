@@ -38,7 +38,7 @@ def status(args: argparse.Namespace) -> None:
         print(f"  providers: {', '.join(data.get('providers', []))}")
     except Exception as exc:  # noqa: BLE001
         print(f"✗ gateway not reachable at {args.url}: {exc}")
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
 
 
 def build_parser() -> argparse.ArgumentParser:

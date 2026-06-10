@@ -13,6 +13,12 @@ services:
       - ./synthr.config.yaml:/app/synthr.config.yaml:ro
       - synthr-data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
 
 volumes:
   synthr-data:

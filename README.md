@@ -10,7 +10,8 @@ Stand it up once, configure it per project, and your apps just call the feature 
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-41%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-47%20passing-3fb950)
+![Checks](https://img.shields.io/badge/checks-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 > **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Maturity & limitations](#maturity--limitations) for the honest, line-by-line breakdown.
@@ -302,9 +303,13 @@ synthr/
 ## Tests
 
 ```bash
-pip install -e ".[dev]" && pytest                # gateway (38)
-pip install -e sdk/python && pytest sdk/python   # SDK (3)
+pip install -e ".[dev]"
+pytest                  # 44 gateway tests
+ruff check src tests    # lint
+mypy                    # type-check
 ```
+
+`pip install -e sdk/python && pytest sdk/python` runs the 3 SDK tests. All three checks (lint · type-check · tests) run in **CI** on every push and PR — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## Status & roadmap
 

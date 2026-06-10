@@ -41,12 +41,12 @@ def _walk(value: Any) -> tuple[Any, bool]:
         return out, found
     if isinstance(value, list):
         found = False
-        out = []
+        items: list = []
         for val in value:
             new, hit = _walk(val)
-            out.append(new)
+            items.append(new)
             found = found or hit
-        return out, found
+        return items, found
     return value, False
 
 
