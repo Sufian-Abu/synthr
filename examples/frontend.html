@@ -1,0 +1,36 @@
+<!doctype html>
+<!-- Open from a server at http://localhost:3000 (the allowed origin), e.g.:
+     python -m http.server 3000   then visit /examples/frontend.html -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Synthr — frontend demo</title>
+  </head>
+  <body style="font-family: system-ui; max-width: 640px; margin: 40px auto">
+    <h1>Synthr from the browser</h1>
+    <p>Uses the <strong>public</strong> key (<code>pk_proj_…</code>) — safe to ship in client code.</p>
+    <textarea id="ctx" rows="3" style="width:100%">Nike Air Max, red, size 10</textarea>
+    <button id="go">Fill form</button>
+    <pre id="out"></pre>
+
+    <script type="module">
+      const BASE = "http://localhost:8000";
+      const KEY = "pk_proj_demo_public";
+      document.getElementById("go").onclick = async () => {
+        const res = await fetch(`${BASE}/v1/fillForm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Project-Key": KEY },
+          body: JSON.stringify({
+            fields: [
+              { name: "brand", type: "string" },
+              { name: "size", type: "number" },
+              { name: "color", type: "string", options: ["red", "blue", "black"] },
+            ],
+            context: document.getElementById("ctx").value,
+          }),
+        });
+        document.getElementById("out").textContent = JSON.stringify(await res.json(), null, 2);
+      };
+    </script>
+  </body>
+</html>

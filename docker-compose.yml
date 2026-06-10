@@ -1,0 +1,18 @@
+# One command: docker compose up
+# Mounts your config + .env; persists the SQLite store in a named volume.
+services:
+  gateway:
+    build: .
+    image: synthr/gateway:dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Your config overrides the baked default. Set db_path: /data/synthr.db for persistence.
+      - ./synthr.config.yaml:/app/synthr.config.yaml:ro
+      - synthr-data:/data
+    restart: unless-stopped
+
+volumes:
+  synthr-data:

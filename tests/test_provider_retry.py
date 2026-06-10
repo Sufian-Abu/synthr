@@ -1,0 +1,66 @@
+"""post_json retry behaviour — transient 5xx are retried, then succeed or raise."""
+
+from __future__ import annotations
+
+import httpx
+import pytest
+
+from synthr_gateway.providers import http as http_mod
+
+
+class _Resp:
+    def __init__(self, status: int) -> None:
+        self.status_code = status
+        self.headers: dict = {}
+
+    def json(self) -> dict:
+        return {"ok": True}
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            req = httpx.Request("POST", "http://x")
+            raise httpx.HTTPStatusError("err", request=req, response=httpx.Response(self.status_code, request=req))
+
+
+class _Client:
+    def __init__(self, seq) -> None:
+        self._seq = seq
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_) -> bool:
+        return False
+
+    async def post(self, *_, **__) -> _Resp:
+        return _Resp(next(self._seq))
+
+
+@pytest.fixture(autouse=True)
+def _no_sleep(monkeypatch):
+    async def nosleep(*_, **__):
+        return None
+
+    monkeypatch.setattr(http_mod.asyncio, "sleep", nosleep)
+
+
+def _patch_statuses(monkeypatch, statuses: list[int]) -> None:
+    seq = iter(statuses)
+    monkeypatch.setattr(http_mod.httpx, "AsyncClient", lambda *a, **k: _Client(seq))
+
+
+async def test_retries_then_succeeds(monkeypatch) -> None:
+    _patch_statuses(monkeypatch, [503, 503, 200])
+    assert await http_mod.post_json("http://x", json={}) == {"ok": True}
+
+
+async def test_raises_after_exhausting_retries(monkeypatch) -> None:
+    _patch_statuses(monkeypatch, [503, 503, 503])
+    with pytest.raises(httpx.HTTPStatusError):
+        await http_mod.post_json("http://x", json={})
+
+
+async def test_non_retryable_4xx_raises_immediately(monkeypatch) -> None:
+    _patch_statuses(monkeypatch, [400, 200, 200])  # 2nd/3rd never reached
+    with pytest.raises(httpx.HTTPStatusError):
+        await http_mod.post_json("http://x", json={})

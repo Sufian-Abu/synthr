@@ -1,0 +1,70 @@
+# Synthr gateway config. Copy to synthr.config.yaml and edit.
+# Real provider keys live ONLY here. Engineers never see them.
+
+gateway:
+  port: 8000
+  secret: "${SYNTHR_SECRET}"       # used to sign/validate; from env
+  db_path: synthr.db               # SQLite: cache, usage log, rate-limit counters (":memory:" = ephemeral)
+
+# Configure only the providers you use. All are optional.
+# openai / grok / ollama all speak the OpenAI chat API (one adapter, different base_url).
+# Quote ${ENV} placeholders so they're valid YAML; they're expanded after parsing.
+providers:
+  gemini: { kind: gemini, api_key: "${GEMINI_KEY}" }
+  openai: { kind: openai, api_key: "${OPENAI_KEY}" }
+  grok:   { kind: grok,   api_key: "${XAI_KEY}" }   # xAI Grok (keys: xai-...)
+  groq:   { kind: groq,   api_key: "${GROQ_KEY}" }  # Groq fast inference (keys: gsk_...)
+  ollama: { kind: ollama }          # local, no key, $0
+  rembg:  { kind: rembg }           # local background removal (needs the 'vision' extra)
+  mock:   { kind: mock }            # deterministic, no network — for dev/CI without any key
+
+# Each capability is mapped to a provider HERE. Swapping a provider = one line, zero app code.
+features:
+  fillForm:
+    provider: gemini                # <- change to openai / grok / groq / ollama / mock
+    model: gemini-flash-latest      # Gemini free tier — easiest live test
+    fallback: { provider: ollama, model: llama3.2 }   # auto-failover if primary errors
+    frontend_safe: true
+    cache: { enabled: true, mode: exact, ttl_minutes: 60 }
+    guardrails:
+      block_pii: true               # blocks credit cards / SSNs / emails / phones before sending
+      max_prompt_length: 4000
+      blocked_keywords: []
+
+  image:
+    provider: gemini                # image-capable: gemini / openai / grok
+    model: imagen-3.0-generate-002
+    frontend_safe: false            # cost control: backend-only by default
+    cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
+
+  removeBackground:
+    provider: rembg                 # non-LLM, local (install the 'vision' extra)
+    model: u2net
+    frontend_safe: true
+    cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
+
+  summarize:
+    provider: gemini
+    model: gemini-flash-latest
+    frontend_safe: true
+    cache: { enabled: true, mode: exact, ttl_minutes: 60 }
+    guardrails: { redact_output_pii: true }   # scrub PII from the summary
+
+  translate:
+    provider: gemini
+    model: gemini-flash-latest
+    frontend_safe: true
+    cache: { enabled: true, mode: exact, ttl_minutes: 60 }
+    guardrails: { redact_output_pii: true }
+
+projects:
+  demo:
+    keys:
+      - { id: sk_proj_demo_secret, type: secret }
+      - { id: pk_proj_demo_public, type: public, allowed_origins: ["http://localhost:3000"] }
+    limits:
+      per_user: { daily_requests: 50 }
+
+defaults:
+  limits:
+    per_user: { daily_requests: 100 }

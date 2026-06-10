@@ -1,0 +1,96 @@
+<div class="cards">
+  <div class="card">
+    <div class="n">{{ totals.requests | comma }}</div>
+    <div class="l">Total requests</div>
+  </div>
+  <div class="card">
+    <div class="n">{{ totals.cache_hit_rate }}%</div>
+    <div class="l">Cache hit rate</div>
+    <div class="hint">{{ totals.cache_hits | comma }} of {{ totals.requests | comma }} served from cache</div>
+  </div>
+  <div class="card">
+    <div class="n">{{ totals.tokens | comma }}</div>
+    <div class="l">Tokens used</div>
+  </div>
+  <div class="card">
+    <div class="n">{{ totals.cost | usd }}</div>
+    <div class="l">Est. spend</div>
+    <div class="hint">{{ totals.cache_hits | comma }} calls saved by cache</div>
+  </div>
+  <div class="card">
+    <div class="n">{{ totals.blocked | comma }}</div>
+    <div class="l">Guardrail / limit blocks</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h3>By feature</h3>
+    <table>
+      <tr><th>Feature</th><th class="num">Requests</th><th class="num">Hit rate</th><th class="num">Tokens</th></tr>
+      {% for f in by_feature %}
+      <tr>
+        <td>{{ f.feature }}</td>
+        <td class="num">{{ f.n | comma }}</td>
+        <td class="num">{{ (100 * f.hits / f.n) | round | int }}%</td>
+        <td class="num">{{ f.tokens | comma }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="empty">No requests yet — try one in <a href="/docs">/docs</a>.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3>By provider</h3>
+    <table>
+      <tr><th>Provider</th><th class="num">Requests</th><th class="num">Tokens</th><th class="num">Est. cost</th></tr>
+      {% for p in by_provider %}
+      <tr>
+        <td><span class="tag">{{ p.provider }}</span></td>
+        <td class="num">{{ p.n | comma }}</td>
+        <td class="num">{{ p.tokens | comma }}</td>
+        <td class="num">{{ p.cost | usd }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="empty">No requests yet.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:16px">
+  <h3>Recent requests</h3>
+  <table>
+    <tr><th>Time</th><th>Feature</th><th>Provider</th><th>User</th><th class="num">Tokens</th><th>Cache</th></tr>
+    {% for r in recent %}
+    <tr>
+      <td>{{ r.time }}</td>
+      <td>{{ r.feature }}</td>
+      <td><span class="tag">{{ r.provider }}</span></td>
+      <td>{{ r.subject }}</td>
+      <td class="num">{{ r.tokens | comma }}</td>
+      <td>{% if r.cached %}<span class="badge-hit">HIT</span>{% else %}<span class="badge-miss">miss</span>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="empty">No requests yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if events %}
+<div class="panel" style="margin-top:16px">
+  <h3>Recent blocks (guardrails &amp; rate limits)</h3>
+  <table>
+    <tr><th>Time</th><th>Type</th><th>User</th><th>Detail</th></tr>
+    {% for e in events %}
+    <tr>
+      <td>{{ e.time }}</td>
+      <td><span class="tag" style="color:var(--warn)">{{ e.kind }}</span></td>
+      <td>{{ e.subject }}</td>
+      <td>{{ e.detail }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}

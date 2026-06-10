@@ -1,0 +1,43 @@
+[project]
+name = "synthr-gateway"
+version = "0.1.0"
+description = "Self-hosted, batteries-included AI-capabilities gateway"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+]
+vision = [
+    "rembg>=2.0",
+    "pillow>=10",
+]
+semantic = [
+    "scikit-learn>=1.3",
+]
+
+[project.scripts]
+synthr-gateway = "synthr_gateway.__main__:main"
+synthr = "synthr_gateway.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/synthr_gateway"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Synthr — Dashboard</title>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <style>
+      :root {
+        --bg:#0f1115; --panel:#171a21; --card:#1d212b; --line:#2a3040;
+        --fg:#e8eaf0; --mut:#9aa3b2; --accent:#6ee7b7; --accent2:#7dd3fc; --warn:#fcd34d;
+      }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--bg); color:var(--fg);
+             font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      header { padding:18px 28px; border-bottom:1px solid var(--line); display:flex;
+               align-items:center; gap:14px; background:var(--panel); }
+      header h1 { margin:0; font-size:18px; letter-spacing:.2px; }
+      header .sub { color:var(--mut); font-size:13px; }
+      header .live { margin-left:auto; color:var(--mut); font-size:12px; display:flex; align-items:center; gap:7px; }
+      header .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+      header a { color:var(--accent2); text-decoration:none; font-size:13px; }
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+      main { padding:22px 28px; max-width:1040px; margin:0 auto; }
+      .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+      .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; }
+      .card .n { font-size:30px; font-weight:650; line-height:1; }
+      .card .l { color:var(--mut); font-size:12px; margin-top:7px; }
+      .card .hint { color:var(--mut); font-size:11px; margin-top:3px; }
+      .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px; }
+      @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
+      h3 { color:var(--mut); font-size:11px; text-transform:uppercase; letter-spacing:.07em; margin:0 0 10px; }
+      .panel { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+      table { width:100%; border-collapse:collapse; }
+      th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); font-size:13px; }
+      th { color:var(--mut); font-weight:500; } tr:last-child td { border-bottom:none; }
+      td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+      .tag { font-size:11px; padding:2px 8px; border-radius:999px; background:#232a38; color:var(--accent2); }
+      .badge-hit { color:#052e22; background:var(--accent); padding:1px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+      .badge-miss { color:var(--mut); font-size:12px; }
+      .empty { color:var(--mut); padding:14px 6px; font-size:13px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Synthr</h1>
+      <span class="sub">usage dashboard</span>
+      <span class="live"><span class="dot"></span> live · every 5s · <a href="/redoc">API reference →</a></span>
+    </header>
+    <main id="stats" hx-get="/dashboard/stats" hx-trigger="every 5s" hx-swap="innerHTML">
+      {% include "partials/stats.html" %}
+    </main>
+  </body>
+</html>

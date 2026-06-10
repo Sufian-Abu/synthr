@@ -1,0 +1,17 @@
+.venv/
+.git/
+.github/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/
+examples/
+docs/
+*.db
+*.db-wal
+*.db-shm
+.env
+synthr.config.yaml
+*.md
+!README.md
+.DS_Store
