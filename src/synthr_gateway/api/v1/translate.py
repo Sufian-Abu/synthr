@@ -11,6 +11,7 @@ from ...providers import Capability, Provider
 from ...ratelimit import RateLimiter
 from ...usage import UsageLog
 from ..deps import get_cache, get_config, get_limiter, get_providers, get_usage
+from ..openapi import feature_responses
 from ..runner import execute
 
 router = APIRouter()
@@ -20,6 +21,7 @@ router = APIRouter()
     "/translate",
     summary="Translate text",
     description="Translates `text` into `target_lang` (e.g. \"Spanish\", \"fr\", \"Japanese\"). Auth: `X-Project-Key` header.",
+    responses=feature_responses("translate", {"translation": "Buenos días, ¿cómo estás?"}),
 )
 async def translate_route(
     body: TranslateRequest,

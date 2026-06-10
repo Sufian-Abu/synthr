@@ -11,6 +11,7 @@ from ...providers import Capability, Provider
 from ...ratelimit import RateLimiter
 from ...usage import UsageLog
 from ..deps import get_cache, get_config, get_limiter, get_providers, get_usage
+from ..openapi import feature_responses
 from ..runner import execute
 
 router = APIRouter()
@@ -20,6 +21,7 @@ router = APIRouter()
     "/summarize",
     summary="Summarize text",
     description="Returns a concise summary of `text`. Optional `max_words` caps the length. Auth: `X-Project-Key` header.",
+    responses=feature_responses("summarize", {"summary": "A self-hosted gateway for ready-made AI features."}),
 )
 async def summarize_route(
     body: SummarizeRequest,

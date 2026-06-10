@@ -11,6 +11,7 @@ from ...providers import Capability, Provider
 from ...ratelimit import RateLimiter
 from ...usage import UsageLog
 from ..deps import get_cache, get_config, get_limiter, get_providers, get_usage
+from ..openapi import feature_responses
 from ..runner import execute
 
 router = APIRouter()
@@ -20,6 +21,7 @@ router = APIRouter()
     "/image",
     summary="Generate an image",
     description="Text-to-image generation. Backend-only by default (public/browser keys are blocked). Auth: `X-Project-Key` header.",
+    responses=feature_responses("image", {"images": [{"b64": "iVBORw0KGgo…", "mime": "image/png"}]}),
 )
 async def image_route(
     body: ImageRequest,

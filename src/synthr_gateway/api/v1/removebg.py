@@ -11,6 +11,7 @@ from ...providers import Capability, Provider
 from ...ratelimit import RateLimiter
 from ...usage import UsageLog
 from ..deps import get_cache, get_config, get_limiter, get_providers, get_usage
+from ..openapi import feature_responses
 from ..runner import execute
 
 router = APIRouter()
@@ -22,6 +23,11 @@ router = APIRouter()
     description=(
         "Returns a transparent PNG with the background removed. Send `image` (base64/data-URI) "
         "or `image_url`. Runs locally via `rembg` (needs the `vision` extra). Auth: `X-Project-Key` header."
+    ),
+    responses=feature_responses(
+        "removeBackground",
+        {"image": {"b64": "iVBORw0KGgo…", "mime": "image/png"}},
+        provider="rembg",
     ),
 )
 async def remove_background_route(

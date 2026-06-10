@@ -11,6 +11,7 @@ from ...providers import Capability, Provider
 from ...ratelimit import RateLimiter
 from ...usage import UsageLog
 from ..deps import get_cache, get_config, get_limiter, get_providers, get_usage
+from ..openapi import feature_responses
 from ..runner import execute
 
 router = APIRouter()
@@ -23,6 +24,10 @@ router = APIRouter()
         "Give your form's **fields** (name + type, optional `options`) and a free-text "
         "**context**. Returns a value for each field. Fields not found in the context come "
         "back `null` and are listed in `unfilled` — it never guesses. Auth: `X-Project-Key` header."
+    ),
+    responses=feature_responses(
+        "fillForm",
+        {"values": {"fullName": "John", "size": 10, "color": "red", "inStock": True}, "unfilled": []},
     ),
 )
 async def fill_form_route(
