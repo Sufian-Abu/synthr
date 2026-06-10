@@ -17,34 +17,42 @@ Stand it up once, configure it per project, and your apps just call the feature 
 
 ## Contents
 
-[The problem](#the-problem) · [What Synthr is](#what-synthr-is) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Tests](#tests) · [Status](#status)
+[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Tests](#tests) · [Status](#status)
 
 ---
 
 ## The problem
 
-Every project that adds AI re-solves the same problems from scratch — then maintains them, separately, in each repo:
+Adding AI to a product is rarely the hard part — it's everything *around* the model. Every project re-solves, and then separately maintains, the same plumbing:
 
-- **Provider wiring** — pick Gemini/OpenAI/…, learn its SDK, redo it in the next project.
+- **Provider wiring** — pick a provider, learn its SDK, write prompts, then redo it all in the next repo.
 - **Key security** — real API keys leak into frontends or get scattered across `.env` files.
 - **Runaway cost** — one user (or a runaway loop) burns the whole API budget.
 - **Paying twice** — the same prompt is sent and billed again and again.
 - **Sensitive data** — credit cards / emails get shipped to the model with nothing stopping them.
-- **No visibility** — nobody knows what AI actually costs, per project.
-- **Lock-in** — switching providers means rewriting code.
+- **No visibility** — nobody really knows what AI is costing, per project.
+- **Lock-in** — switching providers means rewriting application code.
 
-**Synthr solves all of these once, in one place.** Run one Docker container for the team, drop the SDK into any project, and call the feature you need — auth, caching, rate limits, guardrails, fallback, and cost tracking come built in. One config. Every project. No repeated setup.
+Synthr handles all of that **once, behind one gateway** — so each project is left with the only part that matters: calling the feature.
 
-## What Synthr is
+## What Synthr does
 
-A self-hosted gateway that exposes **ready-made AI features** through one small SDK (or plain REST). You call the capability; Synthr owns the prompt, the provider, and the plumbing:
+Synthr is a **self-hosted gateway that turns AI into ready-made features**. Instead of standing up a model and engineering prompts, your app calls a capability — Synthr owns the prompt, the provider, and the plumbing behind it.
 
 ```python
 ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 # → {"values": {"brand": "Nike", "color": "red", "size": 10}, "unfilled": []}
 ```
 
-Each feature's provider is chosen in one config file, so pointing form-fill at Gemini and background-removal at a local model — or swapping either later — is a one-line change with zero app code. Engineers never see prompts, keys, or providers. They just use the feature.
+**Out of the box it can:**
+
+- **Fill forms** — turn messy text into a strict, validated schema
+- **Summarize** — condense long text to a length you choose
+- **Translate** — into any target language
+- **Generate images** — from a text prompt
+- **Remove image backgrounds** — via a local, non-LLM model
+
+Every call automatically gets auth, caching, rate limits, guardrails, provider fallback, and cost logging. **Which provider powers each feature is one line of config** — swap it anytime with zero app code. Engineers never touch prompts, keys, or providers; they just use the feature.
 
 ## Architecture
 
@@ -79,7 +87,39 @@ The shipped config boots with no keys (it falls back to a mock provider), so the
 
 ## Calling it
 
-First-party SDKs ship for **Python** and **TypeScript/JS**. **Any other language — Go, Ruby, PHP, Rust, Java, … — uses the plain REST endpoint** (it's just a `POST` with a header). Same endpoints, same response shape everywhere.
+First-party SDKs ship for **Python** and **TypeScript/JS**; every other language uses the **REST** endpoint directly — it's just a `POST` with a header. Same endpoints and same response shape everywhere.
+
+**Install the SDK:**
+
+```bash
+pip install synthr-sdk          # Python   →  from synthr import AI
+npm  install synthr-sdk         # TypeScript / JavaScript
+```
+
+> Not published to PyPI/npm yet — for now install locally: `pip install -e sdk/python` · `npm install ./sdk/typescript`.
+
+### Python
+
+```python
+from synthr import AI
+
+ai = AI(key="sk_proj_...")                       # url defaults to $SYNTHR_URL or localhost:8000
+ai.fill_form(fields=[{"name": "brand", "type": "string"}], context="Nike Air Max")
+ai.summarize(text="…", max_words=20)
+ai.translate(text="Good morning", target_lang="Spanish")
+```
+
+`AsyncAI` is the same with `await`. Errors raise `SynthrError` (`.code`, `.message`, `.retry_after`).
+
+### TypeScript / JavaScript
+
+```ts
+import { AI } from "synthr-sdk";
+
+// Browser → public key (pk_proj_…).   Backend → secret key (sk_proj_…).
+const ai = new AI({ url: "http://localhost:8000", key: "pk_proj_demo_public" });
+const { values } = await ai.fillForm([{ name: "brand", type: "string" }], "Nike Air Max");
+```
 
 ### REST (any language)
 
@@ -87,13 +127,11 @@ First-party SDKs ship for **Python** and **TypeScript/JS**. **Any other language
 curl -X POST http://localhost:8000/v1/fillForm \
   -H "Content-Type: application/json" \
   -H "X-Project-Key: sk_proj_demo_secret" \
-  -d '{"fields":[{"name":"brand","type":"string"},{"name":"size","type":"number"}],
-       "context":"Nike Air Max size 10"}'
+  -d '{"fields":[{"name":"brand","type":"string"}],"context":"Nike Air Max size 10"}'
 ```
 
-### Go (REST, standard library)
-
-No Go SDK needed — it's one `net/http` call:
+<details>
+<summary><b>Go</b> — no SDK needed, one <code>net/http</code> call</summary>
 
 ```go
 body, _ := json.Marshal(map[string]any{"text": "Synthr is a self-hosted AI gateway.", "max_words": 8})
@@ -103,57 +141,35 @@ req.Header.Set("X-Project-Key", "sk_proj_demo_secret")
 resp, _ := http.DefaultClient.Do(req)
 defer resp.Body.Close()
 
-var out struct {
-    Data struct{ Summary string } `json:"data"`
-}
+var out struct{ Data struct{ Summary string } `json:"data"` }
 json.NewDecoder(resp.Body).Decode(&out)
 fmt.Println(out.Data.Summary)
 ```
-
-### Python ([`sdk/python`](sdk/python/))
-
-```python
-from synthr import AI
-
-ai = AI(key="sk_proj_...")                       # url defaults to localhost:8000 / $SYNTHR_URL
-ai.fill_form(fields=[{"name": "brand", "type": "string"}], context="Nike Air Max")
-ai.summarize(text="…", max_words=20)
-ai.translate(text="Good morning", target_lang="Spanish")
-```
-
-`AsyncAI` is the same with `await`. Errors raise `SynthrError` (`.code`, `.message`, `.retry_after`).
-
-### TypeScript / JavaScript ([`sdk/typescript`](sdk/typescript/))
-
-```ts
-import { AI } from "synthr-sdk";
-
-// Browser: a public key (pk_proj_…). Backend: a secret key (sk_proj_…).
-const ai = new AI({ url: "http://localhost:8000", key: "pk_proj_demo_public" });
-const { values } = await ai.fillForm([{ name: "brand", type: "string" }], "Nike Air Max");
-```
+</details>
 
 ### CLI
 
-```bash
-synthr init      # scaffold synthr.config.yaml + .env
-synthr keygen    # mint a project key (add --public for a browser key)
-synthr status    # ping a running gateway
-```
+| Command | What it does |
+|---|---|
+| `synthr init` | Scaffold `synthr.config.yaml` + `.env` |
+| `synthr keygen` | Mint a project key — add `--public` for a browser-safe key |
+| `synthr status` | Ping a running gateway and print its health |
 
 Full reference — auth, every endpoint, error codes — is in **[USAGE.md](USAGE.md)**.
 
 ## Features
 
-| Feature | Endpoint | Notes |
-|---|---|---|
-| Form autofill | `POST /v1/fillForm` | schema-constrained; unknown fields come back `null`, never guessed |
-| Summarize | `POST /v1/summarize` | optional `max_words` |
-| Translate | `POST /v1/translate` | any `target_lang` |
-| Image generation | `POST /v1/image` | backend-only by default |
-| Background removal | `POST /v1/removeBackground` | local `rembg` — proves non-LLM providers fit too |
+Each feature takes plain inputs and returns structured data — no prompt engineering on your side.
 
-Adding one is a small package under `features/` plus a route. The pattern is the point.
+| Feature | Endpoint | What it does |
+|---|---|---|
+| **Form autofill** | `POST /v1/fillForm` | Extracts values from free text into a schema you define. Unknown fields come back `null` — never guessed. |
+| **Summarize** | `POST /v1/summarize` | Condenses text, with an optional `max_words` cap. |
+| **Translate** | `POST /v1/translate` | Translates text into any `target_lang`. |
+| **Image generation** | `POST /v1/image` | Generates an image from a text prompt. Backend-only by default. |
+| **Background removal** | `POST /v1/removeBackground` | Strips an image background with a local `rembg` model — proof that non-LLM providers fit the same pipeline. |
+
+Adding a feature is a small package under `features/` plus a route — and it **automatically inherits** auth, caching, rate limits, guardrails, fallback, and cost logging. The pattern is the point.
 
 ## Providers
 
@@ -207,24 +223,33 @@ features:
 
 ## Project layout
 
+Three pillars: the **gateway** service, the **SDKs**, and supporting files.
+
 ```
-src/synthr_gateway/       the gateway service
-├── app.py                FastAPI factory
-├── config/               schema + loader (synthr.config.yaml, .env)
-├── core/                 errors + response envelope
-├── security/             dual-key auth + origin checks
-├── guardrails/           input checks + output redaction
-├── cache/                exact + semantic (TF-IDF) + manager
-├── ratelimit/            sliding-window limiter + policy
-├── optimizer/            prompt compression
-├── providers/            base + openai-compat + gemini + rembg + mock + registry
-├── features/             one package per capability (fillform, summarize, …)
-├── usage/                request logging + pricing
-├── dashboard/            HTMX routes + templates
-└── api/                  deps, health, v1 routes, shared runner
-sdk/python · sdk/typescript    first-party clients
-examples/                      REST / Python / JS usage
-tests/                         pytest suite
+synthr/
+├── src/synthr_gateway/        ← the gateway service (FastAPI)
+│   ├── app.py                 app factory + middleware
+│   ├── api/                   v1 routes, deps, health, shared runner
+│   ├── features/              one package per capability (fillform, summarize, translate, image, removebg)
+│   ├── providers/             base + adapters (gemini, openai-compat, rembg, mock) + registry
+│   ├── security/              dual-key auth + origin checks
+│   ├── guardrails/            input checks + output PII redaction
+│   ├── cache/                 exact + TF-IDF semantic + manager
+│   ├── ratelimit/             sliding-window limiter + policy
+│   ├── optimizer/             prompt compression
+│   ├── usage/                 request logging + USD pricing
+│   ├── dashboard/             HTMX routes + templates
+│   ├── config/                schema + loader (synthr.config.yaml, .env)
+│   └── core/                  errors + response envelope
+│
+├── sdk/python/                ← first-party Python client   (synthr)
+├── sdk/typescript/            ← first-party TS / JS client   (synthr-sdk)
+│
+├── examples/                  REST / Python / JS usage
+├── tests/                     pytest suite (gateway + SDK)
+├── docs/                      architecture diagram
+├── Dockerfile · docker-compose.yml
+└── synthr.config.example.yaml · .env.example
 ```
 
 ## Tests

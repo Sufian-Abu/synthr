@@ -105,13 +105,13 @@
   <!-- PROVIDERS -->
   <text class="sec" x="340" y="700">AI PROVIDERS · chosen per feature in config</text>
   <rect class="prov" x="42"  y="710" width="130" height="44"/>
-  <text class="t pt" x="107" y="730">Gemini</text><text class="s ps" x="107" y="746">free tier first</text>
+  <text class="t pt" x="107" y="730">Gemini</text><text class="s ps" x="107" y="746">cloud</text>
   <rect class="prov" x="192" y="710" width="130" height="44"/>
-  <text class="t pt" x="257" y="730">Groq</text><text class="s ps" x="257" y="746">fast · cheap</text>
+  <text class="t pt" x="257" y="730">OpenAI · Grok</text><text class="s ps" x="257" y="746">cloud</text>
   <rect class="prov" x="342" y="710" width="130" height="44"/>
-  <text class="t pt" x="407" y="730">OpenAI · Grok</text><text class="s ps" x="407" y="746">optional</text>
+  <text class="t pt" x="407" y="730">Groq</text><text class="s ps" x="407" y="746">cloud · fast</text>
   <rect class="prov" x="492" y="710" width="130" height="44"/>
-  <text class="t pt" x="557" y="730">Ollama · rembg</text><text class="s ps" x="557" y="746">local · $0</text>
+  <text class="t pt" x="557" y="730">Ollama · rembg</text><text class="s ps" x="557" y="746">local</text>
 
   <!-- WHAT MAKES IT UNIQUE -->
   <text class="sec" x="340" y="796">WHAT MAKES IT UNIQUE</text>
@@ -128,6 +128,6 @@
   <text class="t ut" x="505" y="900">Guardrails built-in</text>
   <text class="s us" x="505" y="918">PII in/out, rate limits — no code</text>
   <rect class="uniq" x="160" y="948" width="360" height="44"/>
-  <text class="t ut" x="340" y="968">100% free &amp; self-hosted</text>
-  <text class="s us" x="340" y="984">Gemini free tier + Ollama = $0 to run</text>
+  <text class="t ut" x="340" y="968">Free &amp; self-hosted</text>
+  <text class="s us" x="340" y="984">Synthr is free — bring any provider, cloud or local</text>
 </svg>
