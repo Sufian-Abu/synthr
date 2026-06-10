@@ -23,17 +23,11 @@ Stand it up once, configure it per project, and your apps just call the feature 
 
 ## The problem
 
-Adding AI to a product is rarely the hard part — it's everything *around* the model. Every project re-solves, and then separately maintains, the same plumbing:
+Every product wants AI features now — form autofill, image generation, background removal, translation, summarization. But every time one lands in the sprint, engineers rebuild the same invisible plumbing: hide the API key, pick a provider, write the prompt, rate-limit users, block sensitive data, cache repeat calls, track the cost. **Same work. Every project. From scratch.**
 
-- **Provider wiring** — pick a provider, learn its SDK, write prompts, then redo it all in the next repo.
-- **Key security** — real API keys leak into frontends or get scattered across `.env` files.
-- **Runaway cost** — one user (or a runaway loop) burns the whole API budget.
-- **Paying twice** — the same prompt is sent and billed again and again.
-- **Sensitive data** — credit cards / emails get shipped to the model with nothing stopping them.
-- **No visibility** — nobody really knows what AI is costing, per project.
-- **Lock-in** — switching providers means rewriting application code.
+**Synthr is the shared layer that handles all of it.** Run one Docker container for your team, drop the SDK into any project, and call the feature you need. Synthr checks rate limits, scans for PII, and serves a cached response when one already exists — all before the model is ever called — then routes the request to the right provider and logs what it cost.
 
-Synthr handles all of that **once, behind one gateway** — so each project is left with the only part that matters: calling the feature.
+**One setup. Every project. No repeated plumbing.**
 
 ## What Synthr does
 
