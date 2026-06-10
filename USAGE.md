@@ -30,8 +30,10 @@ Send your key in the `X-Project-Key` header.
   features marked `frontend_safe: true`.
 - Optional `X-User-Id` header — used for per-user rate limits.
 
-Generate a key: `synthr keygen` (or `synthr keygen --public`). Add it under a project in
-`synthr.config.yaml`.
+Keys are matched by **sha256 hash** and may carry **scopes** (limit to specific features),
+an **expiry**, and a **revoke** flag. Generate one with `synthr keygen` (add `--public`,
+`--scopes summarize translate`, `--expires 2026-12-31`, `--label mobile-app`) — it prints the
+key once plus a ready-to-paste config entry that stores only the hash.
 
 ---
 

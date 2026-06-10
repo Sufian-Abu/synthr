@@ -108,10 +108,18 @@ features:
 # ── Projects & keys ──────────────────────────────────────────────────────
 # Each project gets keys and limits. Secret keys (sk_proj_) are for backends;
 # public keys (pk_proj_) are browser-safe and locked to an origin allowlist.
+#
+# Keys are matched by sha256 HASH. In production store only `hash:` (run
+# `synthr keygen` to mint a key + its hash). The plaintext `id:` below is a
+# dev convenience — it's hashed in memory at load. Optional per-key fields:
+#   scopes:  ["summarize", "translate"]   # restrict to specific features (default ["*"])
+#   expires: "2026-12-31"                  # ISO date/datetime; key stops working after
+#   revoked: true                          # kill a key without deleting it
+#   label:   "mobile-app"                  # non-secret name shown in logs/audit
 projects:
   demo:
     keys:
-      - id: sk_proj_demo_secret
+      - id: sk_proj_demo_secret            # dev only; prod: use `hash:` from `synthr keygen`
         type: secret
       - id: pk_proj_demo_public
         type: public

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 ProviderKind = Literal["openai", "grok", "groq", "ollama", "gemini", "rembg", "mock"]
 
@@ -51,9 +51,20 @@ class FeatureCfg(BaseModel):
 
 
 class KeyCfg(BaseModel):
-    id: str
     type: Literal["secret", "public"]
+    hash: str | None = None  # sha256 hex of the key — store THIS in production, not the key
+    id: str | None = None  # plaintext key — dev convenience only; hashed in memory at load
     allowed_origins: list[str] = Field(default_factory=list)
+    scopes: list[str] = Field(default_factory=lambda: ["*"])  # feature names; ["*"] = all
+    expires: str | None = None  # ISO date/datetime; None = never expires
+    revoked: bool = False
+    label: str | None = None  # non-secret identifier for logs / audit / dashboards
+
+    @model_validator(mode="after")
+    def _require_secret(self) -> KeyCfg:
+        if not self.hash and not self.id:
+            raise ValueError("each key needs 'hash' (preferred) or 'id' (plaintext, dev only)")
+        return self
 
 
 class LimitsCfg(BaseModel):

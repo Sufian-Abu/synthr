@@ -75,12 +75,21 @@ async def execute(
 ) -> dict:
     request_id = "req_" + uuid.uuid4().hex[:12]
 
-    auth = authenticate(config, key, origin)
+    try:
+        auth = authenticate(config, key, origin)
+    except errors.SynthrError as exc:
+        usage.record_event(project="-", subject="-", kind=exc.code, detail=exc.message)
+        raise
 
     feature_cfg = config.features.get(feature)
     if feature_cfg is None:
         raise errors.internal_error(f"Feature {feature!r} is not configured.")
-    authorize_feature(auth, feature, feature_cfg)
+
+    try:
+        authorize_feature(auth, feature, feature_cfg)
+    except errors.SynthrError as exc:
+        usage.record_event(project=auth.project_id, subject=auth.key_id, kind=exc.code, detail=exc.message)
+        raise
 
     subject = user_id or auth.key_id
 

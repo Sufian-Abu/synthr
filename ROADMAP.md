@@ -40,8 +40,9 @@ The MVP runs on SQLite, single-process, with regex guardrails and config-checked
 - ⬜ **Structured provider error mapping** across adapters (typed codes)
 
 ### Auth & security
-- 🟡 **Hashed project keys** (store hashes, show once) — scopes, expiry, rotation, revoke, last-used, audit trail
-- ⬜ **SECURITY.md** threat model + responsible disclosure
+- ✅ **Hashed project keys** (sha256, constant-time) + scopes + expiry + revoke + audit-on-failure; `synthr keygen` emits the hash
+- ⬜ **Online key rotation**, per-key last-used analytics, secret-manager integration
+- ✅ **SECURITY.md** threat model + responsible disclosure
 
 ### Observability & control
 - ⬜ **Request tracing** (OpenTelemetry) + metrics

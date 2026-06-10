@@ -27,7 +27,15 @@ def origin_not_allowed(origin: str | None) -> SynthrError:
 
 
 def feature_not_allowed(feature: str) -> SynthrError:
-    return SynthrError("feature_not_allowed", f"Feature {feature!r} is not allowed for this key type.", 403)
+    return SynthrError("feature_not_allowed", f"Feature {feature!r} is not allowed for this key.", 403)
+
+
+def key_revoked() -> SynthrError:
+    return SynthrError("key_revoked", "This project key has been revoked.", 403)
+
+
+def key_expired() -> SynthrError:
+    return SynthrError("key_expired", "This project key has expired.", 401)
 
 
 def invalid_input(message: str) -> SynthrError:

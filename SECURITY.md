@@ -8,6 +8,8 @@ report a problem. Read it before exposing a gateway to untrusted traffic.
 
 - **Provider keys never leave the gateway.** Real API keys (Gemini, OpenAI, …) live only in
   `synthr.config.yaml` / `.env` on the server. Client apps hold *project keys*, not provider keys.
+- **Project keys are stored hashed** (sha256), compared in constant time, and can carry
+  **scopes** (limit a key to specific features), an **expiry**, and a **revoke** flag.
 - **Two key types.**
   - `sk_proj_…` (secret) — backend/server use, full access.
   - `pk_proj_…` (public) — browser-safe; usable only from an allow-listed `Origin` and only for
@@ -23,7 +25,7 @@ These are tracked in [ROADMAP.md](ROADMAP.md) under "Production hardening". Unti
 
 | Area | Current state | Risk |
 |---|---|---|
-| **Key storage** | Project keys are compared against values in `synthr.config.yaml` (after Track 3: hashed). No scopes/expiry/rotation in the MVP. | A leaked config or key is valid until you edit the file. |
+| **Key storage** | Keys are matched by sha256 **hash** (constant-time); production configs store only the hash. Keys support **scopes, expiry, and revoke**. | No *online* rotation or secret-manager integration; rotating means editing the config. |
 | **Guardrails** | Regex PII/keyword only. | Will miss many real PII formats and adversarial inputs. **Not** a compliance control. |
 | **Storage** | SQLite, single connection + lock. | Not built for concurrent multi-tenant write load. |
 | **Transport** | The gateway speaks plain HTTP. | **Terminate TLS in front of it** (reverse proxy / load balancer). Never expose it directly. |

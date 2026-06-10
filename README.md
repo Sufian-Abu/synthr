@@ -81,7 +81,7 @@ Synthr runs end-to-end today, but be clear-eyed about where it is. An honest map
 |---|---|---|
 | **Storage** | SQLite, single connection + lock | Postgres + connection pool |
 | **Cache / rate-limit** | in-process + SQLite | Redis, shared across workers |
-| **Auth** | project keys checked against config | hashed keys · scopes · expiry · rotation · audit |
+| **Auth** | hashed keys · scopes · expiry · revoke · audit-on-failure | online rotation · per-key analytics · secret-manager |
 | **Guardrails** | regex PII / keyword / length | ML PII (e.g. Presidio) + policy engine |
 | **Fallback** | on provider error | timeout / rate-limit / invalid / safety + circuit breaker |
 | **Token optimizer** | whitespace compression | real token reduction (optional) |
@@ -259,7 +259,7 @@ features:
 
 ## Under the hood
 
-- **Auth** — dual keys: `sk_proj_…` for backends, `pk_proj_…` for browsers (origin-checked, feature-gated). Real provider keys never leave the gateway.
+- **Auth** — dual keys: `sk_proj_…` for backends, `pk_proj_…` for browsers (origin-checked, feature-gated). Keys are matched by **sha256 hash** (constant-time compare) and support **scopes, expiry, and revoke**; auth failures are logged as audit events. Real provider keys never leave the gateway.
 - **Cache** — exact match by default; opt-in **TF-IDF semantic** cache for text features, with a conservative similarity threshold so it never serves a fuzzy answer it can't justify.
 - **Rate limits** — sliding window per user, per day/week/month.
 - **Guardrails** — regex PII/keyword/length checks on input; PII redaction on output. Blocks are logged.
