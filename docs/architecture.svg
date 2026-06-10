@@ -42,9 +42,9 @@
   <!-- SDK ROW -->
   <text class="sec" x="340" y="128">ONE API · same for everyone</text>
   <rect class="sdk" x="30"  y="138" width="160" height="44"/>
-  <text class="t st" x="110" y="158">synthr (pip)</text><text class="s ss" x="110" y="174">Python SDK</text>
+  <text class="t st" x="110" y="158">synthr-sdk (npm)</text><text class="s ss" x="110" y="174">TypeScript SDK</text>
   <rect class="sdk" x="260" y="138" width="160" height="44"/>
-  <text class="t st" x="340" y="158">synthr-sdk (npm)</text><text class="s ss" x="340" y="174">TypeScript SDK</text>
+  <text class="t st" x="340" y="158">synthr (pip)</text><text class="s ss" x="340" y="174">Python SDK</text>
   <rect class="sdk" x="490" y="138" width="160" height="44"/>
   <text class="t st" x="570" y="158">REST / curl</text><text class="s ss" x="570" y="174">any language</text>
 

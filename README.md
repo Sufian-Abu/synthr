@@ -87,16 +87,14 @@ The shipped config boots with no keys (it falls back to a mock provider), so the
 
 ## Calling it
 
-First-party SDKs ship for **Python** and **TypeScript/JS**; every other language uses the **REST** endpoint directly — it's just a `POST` with a header. Same endpoints and same response shape everywhere.
+First-party SDKs ship for **Python** and **TypeScript/JS**; every other language uses the **REST** endpoint directly — it's just a `POST` with a header. The endpoints and the response shape are identical across all three.
 
-**Install the SDK:**
+The SDKs aren't published to PyPI/npm yet, so install them straight from this repo:
 
 ```bash
-pip install synthr-sdk          # Python   →  from synthr import AI
-npm  install synthr-sdk         # TypeScript / JavaScript
+pip install ./sdk/python          # Python   →  from synthr import AI
+npm  install ./sdk/typescript     # TypeScript / JavaScript
 ```
-
-> Not published to PyPI/npm yet — for now install locally: `pip install -e sdk/python` · `npm install ./sdk/typescript`.
 
 ### Python
 
@@ -130,8 +128,9 @@ curl -X POST http://localhost:8000/v1/fillForm \
   -d '{"fields":[{"name":"brand","type":"string"}],"context":"Nike Air Max size 10"}'
 ```
 
-<details>
-<summary><b>Go</b> — no SDK needed, one <code>net/http</code> call</summary>
+### Go (standard library)
+
+No SDK required — a single `net/http` call against the same endpoint:
 
 ```go
 body, _ := json.Marshal(map[string]any{"text": "Synthr is a self-hosted AI gateway.", "max_words": 8})
@@ -141,11 +140,12 @@ req.Header.Set("X-Project-Key", "sk_proj_demo_secret")
 resp, _ := http.DefaultClient.Do(req)
 defer resp.Body.Close()
 
-var out struct{ Data struct{ Summary string } `json:"data"` }
+var out struct {
+    Data struct{ Summary string } `json:"data"`
+}
 json.NewDecoder(resp.Body).Decode(&out)
 fmt.Println(out.Data.Summary)
 ```
-</details>
 
 ### CLI
 
