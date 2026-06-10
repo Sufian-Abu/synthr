@@ -1,99 +1,72 @@
-# Synthr — Roadmap & Backlog
+# Synthr — Roadmap
 
-Status against the architecture + tech-stack diagrams, plus the expanded feature catalog.
+Where Synthr is, and the path from working MVP to production-grade gateway.
 ✅ done · 🟡 partial · ⬜ not started
 
 ---
 
-## A. Gaps from the architecture diagram (the gateway engine)
+## 1. Built — the MVP engine
 
 | Item | Status | Note |
 |---|---|---|
-| Auth & project keys | ✅ | dual-key (secret/public) + origin allowlist |
-| Provider abstraction | ✅ | 6 providers, one interface |
-| `synthr.config.yaml` | ✅ | per-feature provider, limits, cache |
-| Rate limiter (user/day/week/month) | ✅ | sliding window, SQLite |
-| Usage logging | ✅ | one row per request |
-| Exact cache | ✅ | SQLite, persists across restart |
-| **Semantic cache** (embeddings) | ⬜ | exact-only today; needs embed provider + eval loop |
-| **Provider fallback chain** | ⬜ | retry same provider ✅; failover to *other* provider ⬜ |
-| **Guardrails engine** (PII / keyword / output) | ⬜ | config fields exist, not enforced |
-| **Token optimizer** (~30% savings) | ⬜ | |
-| **Usage dashboard** (HTMX UI) | ⬜ | data is logged; no UI yet |
-| Monthly USD spend cap | ⬜ | per-provider price table needed |
-
-## B. Gaps from the tech-stack diagram (distribution & DX)
-
-| Item | Status | Note |
-|---|---|---|
-| FastAPI / SQLite / Pydantic | ✅ | |
-| pytest | ✅ | 17 tests |
-| LLM provider APIs | ✅ | Gemini, OpenAI, Grok, **Groq**, Ollama |
-| **TypeScript SDK** (npm) | ⬜ | thin client over the HTTP API |
-| **Python SDK** (pip) | ⬜ | async/sync httpx client |
-| **Dockerfile + Compose** | ⬜ | the "one `docker run`" promise |
-| **GitHub Actions** (CI + publish) | ⬜ | test on PR, publish SDKs on tag |
-| **MkDocs** docs site | ⬜ | README exists |
-| **CLI** (`synthr init/keygen/status`) | ⬜ | |
-| structlog structured logging | ⬜ | |
-| uv (instead of pip) | 🟡 | works with pip/uv both |
+| Dual-key auth (secret/public) + origin allowlist | ✅ | keys checked against config |
+| Provider abstraction | ✅ | Gemini native + one OpenAI-compatible adapter (OpenAI/Grok/Groq/Ollama) + rembg + mock |
+| `synthr.config.yaml` — per-feature provider, limits, cache, guardrails | ✅ | |
+| Request pipeline (auth → guardrails → rate limit → cache → optimize → run → log) | ✅ | one shared runner for every feature |
+| Rate limiter (per user/feature, sliding window) | ✅ | SQLite-backed |
+| Guardrails (input PII/keyword/length, output PII redaction) | ✅ | regex-based |
+| Exact + TF-IDF semantic cache | ✅ | persists across restart |
+| Provider fallback | 🟡 | fails over on provider error; broader triggers + circuit breaker → §2 |
+| Token optimizer | 🟡 | whitespace compression only |
+| Usage + USD cost logging + HTMX dashboard | ✅ | |
+| Features: `fillForm`, `summarize`, `translate`, `image`, `removeBackground` | ✅ | |
+| Python SDK, TypeScript SDK, CLI (`init`/`keygen`/`status`) | ✅ | not yet published |
+| Dockerfile + Compose + healthcheck | ✅ | one-command boot |
 
 ---
 
-## C. Expanded feature catalog (the capability layer)
+## 2. Production hardening — the real path
 
-The product is *features*, not a pipe — so the catalog should grow well beyond three.
+The MVP runs on SQLite, single-process, with regex guardrails and config-checked keys. To carry untrusted, multi-team, high-concurrency traffic it needs:
 
-### Text (LLM — reuse the `complete` path)
-- ✅ `fillForm` — schema-constrained autofill
-- ✅ `summarize` — concise summary *(added this round)*
-- ✅ `translate` — translate to a target language *(added this round)*
-- ⬜ `seo` — title/description → SEO meta (title, description, keywords)
-- ⬜ `rewrite` — grammar/tone fix, rephrase
-- ⬜ `classify` / `sentiment` — label or score text
-- ⬜ `extract` — generalized structured extraction (fillForm's bigger sibling)
-- ⬜ `generate` — freeform prompt → text (escape hatch)
-- ⬜ `moderate` — safety/topic classification
+### Storage & scale
+- ⬜ **Postgres** backend (SQLAlchemy + Alembic); keep SQLite for dev
+- ⬜ **Redis** for cache + rate-limit counters shared across workers
+- ⬜ **Background queue** (arq/Celery/RQ) for slow image/background tasks + a job-polling endpoint
 
-### Image (diffusion)
-- ✅ `image` — text → image
-- ⬜ `editImage` — image + instruction (inpaint/edit)
-- ⬜ `upscale` — enhance resolution
-- ⬜ `variations` — variants of an input image
+### Reliability
+- 🟡 **Fallback strategy** — fail over on timeout / rate-limit / invalid response / safety block (not just provider error)
+- ⬜ **Circuit breaker** + provider health checks
+- ⬜ **Structured provider error mapping** across adapters (typed codes)
 
-### Vision (non-LLM / multimodal)
-- ✅ `removeBackground` — local `rembg`
-- ⬜ `describeImage` — caption / alt-text
-- ⬜ `ocr` — text from image
-- ⬜ `detectObjects` — labels + boxes
+### Auth & security
+- 🟡 **Hashed project keys** (store hashes, show once) — scopes, expiry, rotation, revoke, last-used, audit trail
+- ⬜ **SECURITY.md** threat model + responsible disclosure
 
-### Audio (future)
-- ⬜ `transcribe` — speech → text
-- ⬜ `tts` — text → speech
+### Observability & control
+- ⬜ **Request tracing** (OpenTelemetry) + metrics
+- ⬜ **Per-project budgets** (hard USD caps, not just logging)
+- ⬜ **Admin UI** for projects / keys / config
 
-### Embeddings (unlocks more)
-- ⬜ `embed` — text → vector (also powers the semantic cache + search)
+### Compatibility & features
+- ⬜ **Drop-in OpenAI-compatible endpoint** (`POST /v1/chat/completions`) — point the official OpenAI SDK / LangChain / etc. at Synthr and inherit the whole pipeline *(deliberately parked: it re-exposes raw chat, which is in tension with the capability-layer positioning — revisit before building)*
+- ⬜ **Streaming** (SSE) for text features
+- ⬜ **ML PII** guardrail backend (e.g. Presidio) alongside regex
+- ⬜ **Embeddings-based** semantic cache (replace TF-IDF) + eval loop
 
-> Pattern proven: a text feature = `features/<name>/{models,service}.py` + a route. A new
-> capability kind = a provider method + `Capability` flag. Adding features is now cheap.
+### Delivery
+- ⬜ **Published SDKs** (PyPI + npm) via release-on-tag
+- ⬜ **Load / concurrency tests**
+- ✅/🟡 **CI** (pytest + ruff + mypy on PR)
 
 ---
 
-## D. Proving it works — client integration
+## 3. Feature catalog — breadth (the capability layer)
 
-Show the same gateway consumed three ways (no code differences on our side):
-- ✅ **REST / curl** — `examples/rest.sh`
-- ✅ **Backend (Python, httpx)** — `examples/backend.py`
-- ✅ **Frontend (JS `fetch`)** — `examples/frontend.mjs` + `examples/frontend.html`
-- ⬜ **First-party SDKs** (npm + pip) — sugar over the above
+The product is *features*, not a pipe, so the catalog should keep growing. A text feature = `features/<name>/` + a route; a new kind = a provider method + a `Capability` flag.
 
----
-
-## E. Suggested build order
-
-1. **Dockerfile + Compose** — delivers the headline "one command" promise.
-2. **HTMX dashboard** — makes the usage data visible (demo gold).
-3. **Guardrails enforcement + provider fallback** — complete the engine (small, high value).
-4. **A few more text features** (`seo`, `rewrite`, `extract`) — breadth.
-5. **SDKs** (Python first, then TS), then **CI + MkDocs** for launch.
-6. **Semantic cache + `embed`** — the "smart" tier, with the eval loop.
+**Text:** ⬜ `seo` · ⬜ `rewrite` · ⬜ `classify`/`sentiment` · ⬜ `extract` · ⬜ `generate` · ⬜ `moderate`
+**Image:** ⬜ `editImage` · ⬜ `upscale` · ⬜ `variations`
+**Vision:** ⬜ `describeImage` · ⬜ `ocr` · ⬜ `detectObjects`
+**Audio:** ⬜ `transcribe` · ⬜ `tts`
+**Embeddings:** ⬜ `embed` — text → vector (also powers semantic cache + search)

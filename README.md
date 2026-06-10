@@ -13,11 +13,13 @@ Stand it up once, configure it per project, and your apps just call the feature 
 ![Tests](https://img.shields.io/badge/tests-41%20passing-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+> **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Maturity & limitations](#maturity--limitations) for the honest, line-by-line breakdown.
+
 ---
 
 ## Contents
 
-[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Tests](#tests) · [Status](#status)
+[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why not the OpenAI SDK?](#why-not-just-the-openai-sdk) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -47,6 +49,47 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 - **Remove image backgrounds** — via a local, non-LLM model
 
 Every call automatically gets auth, caching, rate limits, guardrails, provider fallback, and cost logging. **Which provider powers each feature is one line of config** — swap it anytime with zero app code. Engineers never touch prompts, keys, or providers; they just use the feature.
+
+## Who is this for?
+
+- **Agencies & dev shops** shipping AI across many client projects — stand Synthr up once, reuse it everywhere, no per-repo plumbing.
+- **SaaS teams** that want one governed place for AI: central keys, per-project rate limits, PII guardrails, and a single cost dashboard.
+- **Internal-tools / platform teams** giving product engineers safe, self-serve AI features without handing out raw provider keys.
+
+If you call a model from more than one codebase, Synthr is the shared layer that keeps the plumbing in one place.
+
+## Why not just the OpenAI SDK?
+
+A provider SDK (OpenAI's, Gemini's, anyone's) gives you a *raw model call*. You still build everything around it, in every project:
+
+| With a provider SDK | With Synthr |
+|---|---|
+| Wire up the SDK, write prompts per feature | Call a feature: `fill_form(...)`, `summarize(...)` |
+| Keys live in each app (and leak to frontends) | Keys live only in the gateway; apps hold project keys |
+| Rate limiting, caching, PII checks — you build each | Built in, applied to every call |
+| Cost is invisible until the bill arrives | Per-project cost + cache-hit dashboard |
+| Switching providers means code changes | Switch in config, zero app code |
+
+Synthr doesn't replace the model — it's the **policy, caching, and cost layer** in front of whichever model you pick.
+
+## Maturity & limitations
+
+Synthr runs end-to-end today, but be clear-eyed about where it is. An honest map, not a sales sheet:
+
+| Subsystem | Today (MVP) | What production would need |
+|---|---|---|
+| **Storage** | SQLite, single connection + lock | Postgres + connection pool |
+| **Cache / rate-limit** | in-process + SQLite | Redis, shared across workers |
+| **Auth** | project keys checked against config | hashed keys · scopes · expiry · rotation · audit |
+| **Guardrails** | regex PII / keyword / length | ML PII (e.g. Presidio) + policy engine |
+| **Fallback** | on provider error | timeout / rate-limit / invalid / safety + circuit breaker |
+| **Token optimizer** | whitespace compression | real token reduction (optional) |
+| **Slow tasks** (image / bg) | inline, blocking the request | background queue + job polling |
+| **Observability** | usage log + dashboard | tracing, metrics, per-project budgets |
+| **Delivery** | install from this repo | published SDKs · automated releases |
+| **Providers** | one OpenAI-compatible adapter | per-provider handling (see note under [Providers](#providers)) |
+
+**Good for:** internal tools, prototypes, single-team deployments, and learning how an AI gateway fits together. **Not yet for:** untrusted multi-tenant traffic or high-concurrency production without the hardening above. The path to closing these gaps lives in **[ROADMAP.md](ROADMAP.md)**.
 
 ## Architecture
 
@@ -178,6 +221,8 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Ollama | `ollama` | local, no key, $0 |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 
+> **Adapter note.** OpenAI, Grok, Groq, and Ollama share **one** OpenAI-compatible adapter. They're close, not identical — JSON mode, the image API, error shapes, streaming, and tool-calling diverge between them. The shared adapter covers the common path; provider-specific quirks are handled case by case and are an ongoing area of work.
+
 ## Configuration
 
 One file decides everything. A feature names its provider, its guardrails, and its cache mode:
@@ -253,14 +298,15 @@ pip install -e ".[dev]" && pytest                # gateway (38)
 pip install -e sdk/python && pytest sdk/python   # SDK (3)
 ```
 
-## Status
+## Status & roadmap
 
-The core gateway is complete and runs end-to-end. A few things are deliberately not done yet:
+Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It is a **working MVP, not a hardened production system**. The [Maturity & limitations](#maturity--limitations) table above is the honest breakdown, and **[ROADMAP.md](ROADMAP.md)** tracks the path to production: Postgres, Redis, background queue, circuit breaker, hashed-key auth, tracing, per-project budgets, published SDKs, and a drop-in OpenAI-compatible endpoint.
 
-- **SDKs aren't published** to PyPI/npm — install from the `sdk/` folders for now. Publishing needs a CI release pipeline, which isn't set up.
-- **No GitHub Actions / docs site** yet — intentionally skipped.
-- The **token optimizer** is lossless whitespace compression today (honest and conservative — not a magic 30%).
-- The **semantic cache** uses TF-IDF (the `semantic` extra). Good and cheap; swapping in real embeddings is a clean future upgrade.
+Deliberately not done yet:
+
+- **SDKs aren't published** to PyPI/npm — install from the `sdk/` folders.
+- The **token optimizer** is lossless whitespace compression — honest and conservative, not a magic 30%.
+- The **semantic cache** uses TF-IDF; swapping in embeddings is a clean upgrade.
 
 ## License
 
