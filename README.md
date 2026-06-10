@@ -23,18 +23,9 @@ Stand it up once, configure it per project, and your apps just call the feature 
 
 ## The problem
 
-Almost every product wants AI features now — autofilling a form from messy input, generating an image, removing a background, summarizing or translating text, and a dozen more. The trouble is that **every project ends up building and maintaining all of it from scratch**:
+Your projects keep rebuilding the same AI plumbing — provider setup, key management, rate limiting, caching, PII filtering, cost tracking — slightly differently in every repo.
 
-- pick a provider and learn its SDK,
-- decide where the API key lives (and keep it out of the frontend),
-- stop one user from burning the whole budget,
-- keep sensitive data from leaking to the model,
-- cache repeat calls so you don't pay twice,
-- track what it's costing — per project.
-
-Same plumbing, in every repo, wired slightly differently and maintained separately. It doesn't scale across projects.
-
-**Synthr turns all of that into one shared, plug-and-play layer.** Run it once for the team, configure it per project in a single file, and every app just calls the feature it needs. The provider choice, prompts, caching, limits, guardrails, and cost tracking live in one place — not copy-pasted across codebases.
+**Synthr is the shared layer that handles all of it.** Run one Docker container for the team, drop the SDK into any project, and call the feature you need. One config. Every project. No repeated setup.
 
 ## What Synthr is
 
@@ -50,47 +41,64 @@ Each feature's provider is chosen in one config file, so pointing form-fill at G
 ## Architecture
 
 ```mermaid
-flowchart TD
-    FE["Frontend<br/>React · Vue · JS"]
-    BE["Backend<br/>Python · Node · Go"]
-    OT["Mobile · CLI · curl"]
-
-    FE -->|X-Project-Key| GW
-    BE -->|X-Project-Key| GW
-    OT -->|X-Project-Key| GW
-
-    subgraph GW["Synthr Gateway — one Docker container"]
-        direction TB
-        A["Auth & project keys<br/>secret + public, origin-checked"]
-        G["Guardrails<br/>PII · keywords · output redaction"]
-        R["Rate limiter<br/>sliding window, per user"]
-        C["Cache<br/>exact + TF-IDF semantic"]
-        O["Token optimizer"]
-        RT["Provider router<br/>+ automatic fallback"]
-        U["Usage & cost logging → SQLite"]
-        A --> G --> R --> C --> O --> RT
-        RT -.-> U
+flowchart TB
+    subgraph CLIENTS["🧑‍💻 Your projects — any project, any stack"]
+        direction LR
+        FE["Frontend<br/>React · Vue · JS"]
+        BE["Backend<br/>Python · Node · Go"]
+        OT["Mobile · CLI · other"]
     end
 
-    RT --> P1["Gemini"]
-    RT --> P2["OpenAI"]
-    RT --> P3["Grok (xAI)"]
-    RT --> P4["Groq"]
-    RT --> P5["Ollama (local)"]
-    RT --> P6["rembg (local vision)"]
+    subgraph ACCESS["One API — same for everyone"]
+        direction LR
+        PIP["pip SDK<br/>synthr"]
+        NPM["npm SDK<br/>synthr-sdk"]
+        REST["REST<br/>any HTTP client"]
+    end
 
-    U -.-> D["Dashboard /dashboard"]
+    CLIENTS ==>|X-Project-Key| ACCESS
+    ACCESS ==> PIPE
 
-    classDef client fill:#eef0ff,stroke:#5b4fc4,color:#1e1b4b,stroke-width:1px;
-    classDef step fill:#e1f5ee,stroke:#0f6e56,color:#08503f,stroke-width:1px;
-    classDef prov fill:#fdeee7,stroke:#b1492a,color:#6e2a16,stroke-width:1px;
-    classDef dash fill:#eef7df,stroke:#5f8f1a,color:#33500a,stroke-width:1px;
+    subgraph GW["⚙️ Synthr Gateway — one Docker container"]
+        direction TB
+        subgraph PIPE["Per-request pipeline"]
+            direction LR
+            A["Auth &<br/>project keys"] --> G["Guardrails<br/>PII · keywords<br/>· output redaction"] --> R["Rate limiter<br/>per user<br/>day/week/month"] --> C["Cache<br/>exact + TF-IDF<br/>semantic"] --> O["Token<br/>optimizer"]
+        end
+        O --> RT["🔀 Provider router — automatic fallback chain"]
+        CFG["📄 synthr.config.yaml — providers · limits · guardrails · cache"] -. governs .-> PIPE
+        RT -. logs usage + cost .-> DASH["📊 Usage dashboard — cost · cache hits · blocks"]
+    end
+
+    RT ==> PROV
+
+    subgraph PROV["🤖 AI providers — chosen per feature in config"]
+        direction LR
+        P1["Gemini"]
+        P2["OpenAI"]
+        P3["Grok"]
+        P4["Groq"]
+        P5["Ollama<br/>local · $0"]
+        P6["rembg<br/>local vision"]
+    end
+
+    classDef client fill:#eef0ff,stroke:#5b4fc4,color:#1e1b4b;
+    classDef access fill:#e1f5ee,stroke:#0f6e56,color:#08503f;
+    classDef step fill:#dcefe6,stroke:#0f6e56,color:#08503f;
+    classDef router fill:#fff3d6,stroke:#9a6a00,color:#5a3d00;
+    classDef cfg fill:#fdeede,stroke:#b1722a,color:#6e4216;
+    classDef dash fill:#eef7df,stroke:#5f8f1a,color:#33500a;
+    classDef prov fill:#fde9e3,stroke:#b1492a,color:#6e2a16;
 
     class FE,BE,OT client;
-    class A,G,R,C,O,RT,U step;
+    class PIP,NPM,REST access;
+    class A,G,R,C,O step;
+    class RT router;
+    class CFG cfg;
+    class DASH dash;
     class P1,P2,P3,P4,P5,P6 prov;
-    class D dash;
-    style GW fill:#e6f1fb,stroke:#1f6fb2,color:#0c3a63;
+    style GW fill:#eaf2fb,stroke:#1f6fb2,color:#0c3a63;
+    style PIPE fill:#f3fbf7,stroke:#0f6e56,color:#08503f;
 ```
 
 Every request walks the same path: **authenticate → guardrails → rate limit → cache → optimize → route (with fallback) → log usage**. Each step is a small, independent module, so adding a feature or a provider doesn't touch the rest.
@@ -120,7 +128,7 @@ The shipped config boots with no keys (it falls back to a mock provider), so the
 
 ## Calling it
 
-Four ways in, same endpoints, same response shape.
+First-party SDKs ship for **Python** and **TypeScript/JS**. **Any other language — Go, Ruby, PHP, Rust, Java, … — uses the plain REST endpoint** (it's just a `POST` with a header). Same endpoints, same response shape everywhere.
 
 ### REST (any language)
 
@@ -130,6 +138,25 @@ curl -X POST http://localhost:8000/v1/fillForm \
   -H "X-Project-Key: sk_proj_demo_secret" \
   -d '{"fields":[{"name":"brand","type":"string"},{"name":"size","type":"number"}],
        "context":"Nike Air Max size 10"}'
+```
+
+### Go (REST, standard library)
+
+No Go SDK needed — it's one `net/http` call:
+
+```go
+body, _ := json.Marshal(map[string]any{"text": "Synthr is a self-hosted AI gateway.", "max_words": 8})
+req, _ := http.NewRequest("POST", "http://localhost:8000/v1/summarize", bytes.NewReader(body))
+req.Header.Set("Content-Type", "application/json")
+req.Header.Set("X-Project-Key", "sk_proj_demo_secret")
+resp, _ := http.DefaultClient.Do(req)
+defer resp.Body.Close()
+
+var out struct {
+    Data struct{ Summary string } `json:"data"`
+}
+json.NewDecoder(resp.Body).Decode(&out)
+fmt.Println(out.Data.Summary)
 ```
 
 ### Python ([`sdk/python`](sdk/python/))
