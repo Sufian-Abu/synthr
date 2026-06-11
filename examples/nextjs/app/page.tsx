@@ -172,11 +172,13 @@ function Seo() {
 function ImageGen() {
   const [prompt, setPrompt] = useState("a minimalist red running shoe on a white background");
   const [b64, setB64] = useState("");
+  const [mime, setMime] = useState("image/png");
   const { busy, error, call } = useRunner();
   const go = () =>
     call(async () => {
       const data = await run("image", { prompt });
       setB64(data.images?.[0]?.b64 ?? "");
+      setMime(data.images?.[0]?.mime ?? "image/png");
     });
   return (
     <div style={card}>
@@ -185,7 +187,7 @@ function ImageGen() {
       <textarea style={ta} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       <button style={btn} onClick={go} disabled={busy}>Generate</button>
       <Result busy={busy} error={error}>
-        {b64 && <img alt="generated" src={`data:image/png;base64,${b64}`} style={{ marginTop: 12, maxWidth: "100%", borderRadius: 8 }} />}
+        {b64 && <img alt="generated" src={`data:${mime};base64,${b64}`} style={{ marginTop: 12, maxWidth: "100%", borderRadius: 8 }} />}
       </Result>
     </div>
   );
