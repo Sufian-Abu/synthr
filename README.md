@@ -30,15 +30,39 @@ You call the feature by name; Synthr owns the prompt, the provider, and the plum
 
 ## Contents
 
-[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why Synthr](#why-synthr--vs-openai-sdk-litellm-langchain) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why Synthr](#why-synthr--vs-openai-sdk-litellm-langchain) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
 ## The problem
 
-Every product wants AI features now — form autofill, image generation, background removal, translation, summarization. But every time one lands in the sprint, engineers rebuild the same invisible plumbing: hide the API key, pick a provider, write the prompt, rate-limit users, block sensitive data, cache repeat calls, track the cost. **Same work. Every project. From scratch.**
+"Add AI to the app" sounds like one task. It isn't. The model call is a few lines — but to ship it *safely* and *for real*, every team rebuilds the same scaffolding, in every project, from scratch:
 
-**Synthr is the shared layer that handles all of it.** Run one Docker container for your team, drop the SDK into any project, and call the feature you need. Synthr checks rate limits, scans for PII, and serves a cached response when one already exists — all before the model is ever called — then routes the request to the right provider and logs what it cost.
+- **Prompts & parsing.** You write a prompt for "extract these fields," coax the model into clean JSON, then write parsing + validation when it drifts. Next feature, next project — do it again.
+- **Leaked keys.** The fastest way to call a model from the frontend is to put the provider key in the client — where anyone can open devtools and drain your account. So you stand up a backend proxy… per app.
+- **Runaway cost.** One bug, one abusive user, or one retry loop quietly burns the month's budget. There's no per-project cap and no hard stop.
+- **Paying for the same answer.** The same prompt gets sent — and billed — over and over, with no cache.
+- **Sensitive data to third parties.** Emails, cards, and SSNs flow straight to the model unless someone remembers to scrub them. Usually no one does.
+- **No cost visibility.** Nobody can answer "what is AI costing us, per project?" until the invoice lands.
+- **Provider lock-in.** Switching from one provider to another — or using a cheap one for drafts and a strong one for prod — means rewriting application code.
+- **Slow endpoints block requests.** Image generation and background removal take seconds and tie up a request thread/connection.
+
+None of this is the *feature*. It's the same plumbing, re-soldered in every repo — and it's where the bugs, the leaks, and the surprise bills come from.
+
+## What we built (and what it solves)
+
+**Synthr is one self-hosted gateway that owns all of that plumbing, so your app just calls the feature by name.** You run it once; every project talks to it through one tiny SDK (or plain REST). Each problem above maps to something Synthr handles for you:
+
+| The problem | What Synthr does |
+|---|---|
+| Prompts & parsing per feature | **Ready-made features** (`fillForm`, `summarize`, `extract`, …) — Synthr owns the prompt and returns validated, structured data |
+| Provider keys leak to the frontend | Real keys live **only in the gateway**; apps use **project keys** — public `pk_` keys are origin-locked and browser-safe |
+| Runaway cost | **Hard budgets** — daily/monthly/per-feature caps that reject once exceeded |
+| Paying for repeat answers | Built-in **cache** (exact + opt-in semantic) — the same prompt is served free |
+| Sensitive data leaving | **Guardrails** — PII/keyword blocks on input, PII redaction on output, before the model sees it |
+| No cost visibility | Every call **logged with tokens + USD**, on a per-project **dashboard** |
+| Provider lock-in | Provider is **one line of config per feature** — swap anytime, zero app code; automatic **fallback + circuit breaker** |
+| Slow endpoints block requests | **Background jobs** — submit and poll instead of holding a connection |
 
 **One setup. Every project. No repeated plumbing.**
 
