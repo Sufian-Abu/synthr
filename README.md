@@ -1,9 +1,17 @@
 # Synthr
 
-*Pronounced “sin-ther” — synthesize + route.*
+*Pronounced “sin-ther”.*
 
-**A self-hosted AI gateway that gives every project ready-made AI features behind one tiny SDK** — form autofill, image generation, background removal, translation, summarization, and a catalog that keeps growing.
-Stand it up once; your apps just **call the feature by name**. No prompts to write, no provider keys in your frontend, no per-project plumbing — **nothing to build on your end.**
+**Synthr is a self-hosted AI feature gateway.** Add AI features to any app through one SDK — without exposing provider keys, rewriting prompts, or rebuilding AI infrastructure in every project.
+
+- 🧩 **Ready-made AI features** — form autofill · summarize · translate · rewrite · SEO metadata · image generation · background removal *(catalog keeps growing)*
+- 📦 **One SDK for every project** — same gateway, same auth, same response shape, from frontend, backend, or any language
+- 🔌 **Provider-agnostic** — Gemini · OpenAI · Groq · Grok · Ollama · Hugging Face · rembg · mock, chosen per feature in config
+- 🛡️ **Frontend-safe** — public project keys with an origin allowlist; real provider keys never touch the browser
+- ⚙️ **Built-in AI infrastructure** — cache · rate limits · guardrails · provider fallback · usage/cost dashboard, on every call
+- 🔁 **OpenAI-compatible** — point the OpenAI SDK's base URL at Synthr and migrate in minutes
+
+You call the feature by name; Synthr owns the prompt, the provider, and the plumbing. **Nothing to build on your end.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
@@ -11,8 +19,10 @@ Stand it up once; your apps just **call the feature by name**. No prompts to wri
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
 ![Tests](https://img.shields.io/badge/tests-88%20passing-3fb950)
-![Checks](https://img.shields.io/badge/checks-ruff%20%C2%B7%20mypy%20%C2%B7%20pytest-3fb950)
+[![CI](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml/badge.svg)](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+
+> **▶ See it running:** the [**Next.js playground**](examples/nextjs/) calls every feature live (form autofill, image, background removal, …) through one gateway — start there.
 
 > **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Maturity & limitations](#maturity--limitations) for the honest, line-by-line breakdown.
 
@@ -20,7 +30,7 @@ Stand it up once; your apps just **call the feature by name**. No prompts to wri
 
 ## Contents
 
-[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why not the OpenAI SDK?](#why-not-just-the-openai-sdk) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why Synthr](#why-synthr--vs-openai-sdk-litellm-langchain) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -62,19 +72,21 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 
 If you call a model from more than one codebase, Synthr is the shared layer that keeps the plumbing in one place.
 
-## Why not just the OpenAI SDK?
+## Why Synthr — vs OpenAI SDK, LiteLLM, LangChain
 
-A provider SDK (OpenAI's, Gemini's, anyone's) gives you a *raw model call*. You still build everything around it, in every project:
+These all operate at the **model** layer — they hand you a call and you build the feature, the policy, and the key custody yourself, in every project. Synthr operates at the **feature** layer: you call `fill_form(...)`, and auth, caching, limits, guardrails, fallback, and cost tracking are already applied.
 
-| With a provider SDK | With Synthr |
-|---|---|
-| Wire up the SDK, write prompts per feature | Call a feature: `fill_form(...)`, `summarize(...)` |
-| Keys live in each app (and leak to frontends) | Keys live only in the gateway; apps hold project keys |
-| Rate limiting, caching, PII checks — you build each | Built in, applied to every call |
-| Cost is invisible until the bill arrives | Per-project cost + cache-hit dashboard |
-| Switching providers means code changes | Switch in config, zero app code |
+| | **Provider SDK** (OpenAI/Gemini) | **LiteLLM** | **LangChain** | **Synthr** |
+|---|:--:|:--:|:--:|:--:|
+| Unit you call | raw `chat.completions` | raw `chat.completions` | chains/agents you build | **a named feature** (`fillForm`, `summarize`, …) |
+| Who writes the prompt | you, per feature | you, per feature | you, per chain | **Synthr (built in)** |
+| Provider keys | in each app | in the app/proxy | in the app | **only in the gateway** |
+| Browser-safe calls | ✗ (key exposed) | ✗ | ✗ | **✓ public keys + origin allowlist** |
+| Caching / rate limit / guardrails | you build each | partial (cache, budgets) | you build each | **built in, every call** |
+| Cost visibility | the bill | ✓ logging | ✗ | **per-project dashboard** |
+| Swap provider | code change | config | code change | **one config line** |
 
-Synthr doesn't replace the model — it's the **policy, caching, and cost layer** in front of whichever model you pick. And if you're already on the OpenAI SDK, you don't have to choose: **point it at Synthr** and keep your code (see [OpenAI-compatible API](#openai-compatible-api)).
+LiteLLM is the closest, but it's still a *router* — it unifies the pipe; you write the features. **Synthr ships the features.** And if you're already on the OpenAI SDK, you don't have to choose: **point its base URL at Synthr** and keep your code (see [OpenAI-compatible API](#openai-compatible-api)).
 
 ## Maturity & limitations
 
@@ -394,6 +406,12 @@ features:
 ## Dashboard
 
 `/dashboard` is server-rendered (HTMX, no build step) and refreshes itself. It shows total requests, cache-hit rate, tokens, estimated spend, guardrail/redaction events, and per-feature / per-provider breakdowns — all from the SQLite usage log.
+
+<p align="center">
+  <img src="docs/dashboard.png" alt="Synthr usage dashboard — requests, cache-hit rate, tokens, estimated spend, and per-feature / per-provider breakdowns" width="720">
+</p>
+
+*(Regenerate with `python scripts/capture_dashboard.py` while the gateway is running.)*
 
 ## Project layout
 
