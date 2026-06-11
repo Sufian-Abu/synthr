@@ -36,3 +36,16 @@ Browser ──► Next.js route ──(secret sk_)► Synthr   (everything; secr
 - `NEXT_PUBLIC_SYNTHR_PUBLIC_KEY` *is* exposed to the browser — that's fine, because it's a
   public key restricted by origin + `frontend_safe`. Try calling a backend-only feature
   (like `image`) with it and Synthr returns `feature_not_allowed`.
+
+## Troubleshooting
+
+- **`http://localhost:3000` won't connect.** The dev server isn't running. Run `npm install`
+  then `npm run dev`, and wait for `✓ Ready ... Local: http://localhost:3000` before opening it.
+- **The browser "Fill form" button fails with a CORS error.** The gateway opens CORS only to
+  the origins on your public keys. Make sure `pk_proj_demo_public` lists `http://localhost:3000`
+  under `allowed_origins`, and **restart the gateway** after editing the config.
+- **Calls return `502` / provider errors.** The gateway can't reach the configured provider —
+  add the provider's key to the gateway's `.env`, or set the feature's `provider: mock` for an
+  offline run.
+- **`401 invalid_key`.** The keys in `.env.local` don't match the gateway's config. Use the
+  demo keys (`sk_proj_demo_secret` / `pk_proj_demo_public`) or your own.

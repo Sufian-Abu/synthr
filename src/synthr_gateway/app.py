@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .api.health import router as health_router
@@ -57,6 +58,19 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
     app.state.cache = CacheManager(db)
     app.state.usage = UsageLog(db)
     app.state.limiter = RateLimiter(db)
+
+    # CORS so browsers can use public keys cross-origin. The allow-list is exactly the
+    # origins declared on public (pk_proj_) keys — no wildcard.
+    cors_origins = sorted(
+        {o for p in config.projects.values() for k in p.keys if k.type == "public" for o in k.allowed_origins}
+    )
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type", "X-Project-Key", "X-User-Id", "Authorization"],
+        )
 
     @app.exception_handler(SynthrError)
     async def _handle_nexus_error(_: Request, exc: SynthrError) -> JSONResponse:
