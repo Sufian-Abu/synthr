@@ -15,7 +15,7 @@ from ..core import errors
 from .base import Provider
 from .types import Capability, ImageResult
 
-DEFAULT_BASE = "https://api-inference.huggingface.co/models"
+DEFAULT_BASE = "https://router.huggingface.co/hf-inference/models"
 DEFAULT_MODEL = "black-forest-labs/FLUX.1-schnell"
 
 
@@ -65,8 +65,13 @@ class HuggingFaceProvider(Provider):
         detail = (body.get("error") if isinstance(body, dict) else None) or (resp.text[:200] if hasattr(resp, "text") else "")
         if resp.status_code == 503 and isinstance(body, dict) and body.get("estimated_time"):
             raise errors.provider_error(f"Hugging Face model {model!r} is warming up (~{int(body['estimated_time'])}s) — retry shortly.")
-        if resp.status_code in (401, 403):
-            raise errors.provider_error("Hugging Face rejected the request — set a valid HF_TOKEN.")
+        if resp.status_code == 401:
+            raise errors.provider_error("Hugging Face rejected the token (401) — set a valid HF_TOKEN.")
+        if resp.status_code == 403:
+            raise errors.provider_error(
+                "Hugging Face token lacks Inference permission (403) — create a token with "
+                "'Make calls to Inference Providers' enabled (or a classic read token)."
+            )
         if resp.status_code == 429:
             raise errors.provider_rate_limited("Hugging Face rate limit hit.")
         raise errors.provider_error(f"Hugging Face image generation failed (HTTP {resp.status_code}). {detail}")
