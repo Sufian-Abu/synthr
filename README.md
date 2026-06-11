@@ -2,8 +2,8 @@
 
 *Pronounced “sin-ther” — synthesize + route.*
 
-**A self-hosted AI gateway that gives every project ready-made AI features behind one tiny SDK.**
-Stand it up once, configure it per project, and your apps just call the feature they need — no prompts to write, no provider keys in your frontend, no per-project plumbing to maintain.
+**A self-hosted AI gateway that gives every project ready-made AI features behind one tiny SDK** — form autofill, image generation, background removal, translation, summarization, and a catalog that keeps growing.
+Stand it up once; your apps just **call the feature by name**. No prompts to write, no provider keys in your frontend, no per-project plumbing — **nothing to build on your end.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
@@ -41,15 +41,18 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 # → {"values": {"brand": "Nike", "color": "red", "size": 10}, "unfilled": []}
 ```
 
-**Out of the box it can:**
+**Ready-made features, out of the box:**
 
-- **Fill forms** — turn messy text into a strict, validated schema
+- **Fill forms** — messy text into a strict, validated schema
 - **Summarize** — condense long text to a length you choose
 - **Translate** — into any target language
+- **Rewrite** — fix grammar, change tone or length
+- **Generate text** — a freeform prompt when no named feature fits
+- **SEO metadata** — content into title, description, and keywords
 - **Generate images** — from a text prompt
-- **Remove image backgrounds** — via a local, non-LLM model
+- **Remove image backgrounds** — a local, non-LLM model
 
-Every call automatically gets auth, caching, rate limits, guardrails, provider fallback, and cost logging. **Which provider powers each feature is one line of config** — swap it anytime with zero app code. Engineers never touch prompts, keys, or providers; they just use the feature.
+**The catalog keeps growing — and every feature is zero-effort for the caller.** You call the name; Synthr owns the prompt, the provider, and the plumbing. Each call automatically gets auth, caching, rate limits, guardrails, provider fallback, and cost logging. Which provider powers each feature is **one line of config** — swap it anytime with zero app code. Adding a new feature is a small package on Synthr's side; **the apps that use it change nothing.**
 
 ## Who is this for?
 
@@ -235,17 +238,21 @@ const r = await client.chat.completions.create({
 
 ## Features
 
-Each feature takes plain inputs and returns structured data — no prompt engineering on your side.
+Each feature takes plain inputs and returns structured data — **no prompt engineering, no setup on your side.** Call the name; that's it.
 
 | Feature | Endpoint | What it does |
 |---|---|---|
 | **Form autofill** | `POST /v1/fillForm` | Extracts values from free text into a schema you define. Unknown fields come back `null` — never guessed. |
 | **Summarize** | `POST /v1/summarize` | Condenses text, with an optional `max_words` cap. |
 | **Translate** | `POST /v1/translate` | Translates text into any `target_lang`. |
+| **Rewrite** | `POST /v1/rewrite` | Transforms `text` per an `instruction` — grammar, tone, length, style. |
+| **Generate** | `POST /v1/generate` | Freeform prompt → text. The escape hatch when no named feature fits. |
+| **SEO metadata** | `POST /v1/seo` | Turns content into a page title, meta description, and keywords. |
 | **Image generation** | `POST /v1/image` | Generates an image from a text prompt. Backend-only by default. |
 | **Background removal** | `POST /v1/removeBackground` | Strips an image background with a local `rembg` model — proof that non-LLM providers fit the same pipeline. |
+| **OpenAI chat** | `POST /v1/chat/completions` | [Drop-in OpenAI-compatible](#openai-compatible-api) chat for existing SDK code. |
 
-Adding a feature is a small package under `features/` plus a route — and it **automatically inherits** auth, caching, rate limits, guardrails, fallback, and cost logging. The pattern is the point.
+**This list is meant to grow.** Adding a feature is a small package under `features/` plus a route — and it **automatically inherits** auth, caching, rate limits, guardrails, fallback, and cost logging. Consumers don't change a line; the new capability is just *there*. (See [CONTRIBUTING.md](CONTRIBUTING.md) for the recipe.)
 
 ## Providers
 
