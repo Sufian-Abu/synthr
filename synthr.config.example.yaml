@@ -162,6 +162,12 @@ features:
     frontend_safe: false
     cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
 
+  ocr:
+    provider: gemini                   # vision (image → text): gemini / openai / grok
+    model: gemini-flash-latest
+    frontend_safe: false
+    cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
+
   # Drop-in OpenAI-compatible endpoint: POST /v1/chat/completions.
   # Point the official OpenAI SDK at this gateway; the request's `model` is
   # forwarded to the provider chosen here. Supports streaming and tools.

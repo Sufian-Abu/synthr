@@ -9,6 +9,7 @@ own error *body* into a typed code; otherwise a generic status-based mapping is 
 from __future__ import annotations
 
 import asyncio
+import base64
 import json as jsonlib
 from collections.abc import AsyncIterator, Callable
 
@@ -87,6 +88,19 @@ async def post_json(
             raise errors.provider_invalid_response("Provider response was not valid JSON.") from exc
 
     raise RuntimeError("unreachable")  # loop always returns or raises
+
+
+async def fetch_image(url: str, *, timeout: float = 30.0) -> tuple[str, str]:
+    """Download an image and return (base64, mime-type)."""
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.get(url)
+    except httpx.HTTPError as exc:
+        raise errors.invalid_input(f"Could not fetch image_url: {exc}") from exc
+    if resp.status_code >= 400:
+        raise errors.invalid_input(f"Could not fetch image_url (HTTP {resp.status_code}).")
+    mime = resp.headers.get("content-type", "image/png").split(";")[0].strip() or "image/png"
+    return base64.b64encode(resp.content).decode(), mime
 
 
 async def post_sse(

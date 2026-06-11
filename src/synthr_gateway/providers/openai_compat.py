@@ -98,6 +98,7 @@ class OpenAICompatProvider(Provider):
     supports_streaming = True
     supports_images = False
     supports_embeddings = False
+    supports_vision = False
     image_endpoint = "/images/generations"
     image_default_model: str | None = None
     image_supports_size = True
@@ -112,6 +113,8 @@ class OpenAICompatProvider(Provider):
             self.capabilities.add(Capability.IMAGE)
         if self.supports_embeddings:
             self.capabilities.add(Capability.EMBED)
+        if self.supports_vision:
+            self.capabilities.add(Capability.VISION)
 
     @property
     def _headers(self) -> dict:
@@ -236,11 +239,47 @@ class OpenAICompatProvider(Provider):
         usage = data.get("usage", {})
         return EmbedResult(vectors=vectors, model=model, usage={"prompt_tokens": usage.get("prompt_tokens", 0)})
 
+    # ── vision (image in, text out) ───────────────────────────────────────
+    async def vision(
+        self,
+        prompt: str,
+        *,
+        image_b64: str | None = None,
+        image_url: str | None = None,
+        mime: str = "image/png",
+        model: str | None = None,
+    ) -> CompletionResult:
+        if not self.supports_vision:
+            raise errors.provider_error(f"{self.kind} does not support vision.")
+        if image_b64:
+            ref = f"data:{mime};base64,{image_b64}"
+        elif image_url:
+            ref = image_url
+        else:
+            raise errors.invalid_input("vision needs an image or image_url.")
+        content = [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": ref}}]
+        payload = {"model": model, "messages": [{"role": "user", "content": content}], "temperature": 0.0}
+        data = await post_json(
+            f"{self.base_url}/chat/completions", json=payload, headers=self._headers, classify_error=self._classify_error
+        )
+        try:
+            text = data["choices"][0].get("message", {}).get("content") or ""
+        except (KeyError, IndexError, TypeError) as exc:
+            raise errors.provider_invalid_response(f"{self.kind}: malformed vision response.") from exc
+        usage = data.get("usage", {})
+        return CompletionResult(
+            text=text,
+            model=model or "",
+            usage={"prompt_tokens": usage.get("prompt_tokens", 0), "completion_tokens": usage.get("completion_tokens", 0)},
+            raw=data,
+        )
+
 
 class OpenAIProvider(OpenAICompatProvider):
     kind = "openai"
     supports_images = True
     supports_embeddings = True
+    supports_vision = True
     image_default_model = "gpt-image-1"
     image_supports_size = True
     embed_default_model = "text-embedding-3-small"
@@ -256,6 +295,7 @@ class OpenAIProvider(OpenAICompatProvider):
 class GrokProvider(OpenAICompatProvider):
     kind = "grok"
     supports_images = True
+    supports_vision = True
     image_default_model = "grok-2-image"
     image_supports_size = False  # xAI's image API rejects `size`
 

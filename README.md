@@ -6,7 +6,7 @@
 
 *Call the feature, not the model — one gateway for every project, from any stack.*
 
-- 🧩 **Ready-made AI features** — form autofill · summarize · translate · rewrite · SEO metadata · image generation · background removal *(catalog keeps growing)*
+- 🧩 **Ready-made AI features** — form autofill · summarize · translate · rewrite · SEO · classify · extract · **OCR** · image generation · background removal *(catalog keeps growing)*
 - 📦 **One SDK for every project** — same gateway, same auth, same response shape, from frontend, backend, or any language
 - 🔌 **Provider-agnostic** — Gemini · OpenAI · Groq · Grok · Ollama · Hugging Face · rembg · mock, chosen per feature in config
 - 🛡️ **Frontend-safe** — public project keys with an origin allowlist; real provider keys never touch the browser
@@ -21,7 +21,7 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-108%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-112%20passing-3fb950)
 [![CI](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml/badge.svg)](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -106,6 +106,12 @@ ai.moderate(text=user_message)               # flag abuse before it's stored or 
 ai.fill_form(fields=[...], context=email_or_transcript)
 ```
 
+**Documents — read a scan, then structure it**
+```python
+text = ai.ocr(image_url=scanned_invoice)["text"]                 # image → text
+ai.extract(text=text, schema={"total": "number", "due_date": "string"})
+```
+
 Need several in sequence? Chain them in one call with a [workflow](#workflows): `extract → classify → summarize → webhook`.
 
 ## What Synthr does
@@ -125,7 +131,7 @@ ai.seo(content=page)
 ai.remove_background(image=img)
 ```
 
-A dozen features ship today — form autofill, summarize, translate, rewrite, generate, SEO, classify, extract, moderate, embed, image generation, background removal, plus an OpenAI-compatible chat endpoint (**[full list with examples ↓](#features)**). **Every one is zero-effort for the caller:** you call the name; Synthr owns the prompt, picks the provider, and applies auth, caching, rate limits, guardrails, fallback, and cost logging. Which provider powers each is one line of config; adding a feature is a small package on Synthr's side — the apps that use it change nothing.
+A baker's dozen of features ship today — form autofill, summarize, translate, rewrite, generate, SEO, classify, extract, moderate, embed, OCR, image generation, background removal, plus an OpenAI-compatible chat endpoint (**[full list with examples ↓](#features)**). **Every one is zero-effort for the caller:** you call the name; Synthr owns the prompt, picks the provider, and applies auth, caching, rate limits, guardrails, fallback, and cost logging. Which provider powers each is one line of config; adding a feature is a small package on Synthr's side — the apps that use it change nothing.
 
 ## Who is this for?
 
@@ -297,6 +303,7 @@ Each feature takes plain inputs and returns structured data — **no prompt engi
 | **Extract** | `POST /v1/extract` | Structured extraction — a typed `schema` → one record, or `fields` → a list of records. |
 | **Moderate** | `POST /v1/moderate` | Content-safety flag + categories + reason. |
 | **Embed** | `POST /v1/embed` | Text → embedding vector(s), one string or a batch. |
+| **OCR** | `POST /v1/ocr` | Reads the text in an image (`image` or `image_url`) → plain text. Vision-capable provider. |
 | **Image generation** | `POST /v1/image` | Generates an image from a text prompt. Backend-only by default. |
 | **Background removal** | `POST /v1/removeBackground` | Strips an image background with a local `rembg` model — proof that non-LLM providers fit the same pipeline. |
 | **Background jobs** | `POST /v1/jobs` · `GET /v1/jobs/{id}` | Run any feature async (for slow image/bg work); submit, then poll for the result. |
@@ -391,9 +398,9 @@ Pick per feature in config; swap with a one-line change, zero app code.
 
 | Provider | `kind` | Notes |
 |---|---|---|
-| Gemini | `gemini` | native API, structured output + Imagen |
-| OpenAI | `openai` | text + images |
-| Grok (xAI) | `grok` | keys start `xai-` |
+| Gemini | `gemini` | native API; text · JSON · embeddings · **vision (OCR)** · Imagen |
+| OpenAI | `openai` | text · images · embeddings · **vision** |
+| Grok (xAI) | `grok` | text · images · **vision**; keys start `xai-` |
 | Groq | `groq` | fast inference; keys start `gsk_` |
 | Ollama | `ollama` | local, no key, $0 |
 | Hugging Face | `huggingface` | **free text-to-image** (FLUX / SDXL); token starts `hf_` |
@@ -490,7 +497,7 @@ synthr/
 
 ```bash
 pip install -e ".[dev]"
-pytest                  # 105 gateway tests
+pytest                  # 109 gateway tests
 ruff check src tests    # lint
 mypy                    # type-check
 ```

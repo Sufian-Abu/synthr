@@ -90,6 +90,10 @@ export class AI {
     return this.call("embed", { input });
   }
 
+  ocr(opts: { image?: string; imageUrl?: string }): Promise<{ text: string }> {
+    return this.call("ocr", { image: opts.image, image_url: opts.imageUrl });
+  }
+
   /** Escape hatch for any feature, including custom ones. */
   run<T = unknown>(feature: string, payload: unknown): Promise<T> {
     return this.call<T>(feature, payload);

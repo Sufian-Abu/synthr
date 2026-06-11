@@ -68,6 +68,10 @@ features:
     provider: mock
     frontend_safe: true
     cache: { enabled: false }
+  ocr:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
 projects:
   demo:
     keys:

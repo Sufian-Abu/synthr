@@ -17,6 +17,7 @@ from .fillform import FillFormRequest, fill_form
 from .generate import GenerateRequest, generate
 from .image import ImageRequest, generate_image
 from .moderate import ModerateRequest, moderate
+from .ocr import OcrRequest, ocr
 from .removebg import RemoveBackgroundRequest, remove_background
 from .rewrite import RewriteRequest, rewrite
 from .seo import SeoRequest, seo
@@ -53,4 +54,5 @@ DISPATCH: dict[str, FeatureSpec] = {
     "removeBackground": FeatureSpec(
         RemoveBackgroundRequest, Capability.REMOVE_BACKGROUND, remove_background, lambda b: None
     ),
+    "ocr": FeatureSpec(OcrRequest, Capability.VISION, ocr, lambda b: None),
 }

@@ -82,6 +82,9 @@ class AI:
     def embed(self, inputs: str | list[str]) -> dict:
         return self._call(*p.embed(inputs))
 
+    def ocr(self, image: str | None = None, image_url: str | None = None) -> dict:
+        return self._call(*p.ocr(image, image_url))
+
     def run(self, feature: str, payload: dict) -> dict:
         """Escape hatch for any feature, including custom ones."""
         return self._call(feature, payload)
@@ -160,6 +163,9 @@ class AsyncAI:
 
     async def embed(self, inputs: str | list[str]) -> dict:
         return await self._call(*p.embed(inputs))
+
+    async def ocr(self, image: str | None = None, image_url: str | None = None) -> dict:
+        return await self._call(*p.ocr(image, image_url))
 
     async def run(self, feature: str, payload: dict) -> dict:
         return await self._call(feature, payload)

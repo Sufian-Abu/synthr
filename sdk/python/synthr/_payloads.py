@@ -75,6 +75,15 @@ def moderate(text: str) -> tuple[str, dict]:
     return "moderate", {"text": text}
 
 
+def ocr(image_b64: str | None, image_url: str | None) -> tuple[str, dict]:
+    body: dict = {}
+    if image_b64:
+        body["image"] = image_b64
+    if image_url:
+        body["image_url"] = image_url
+    return "ocr", body
+
+
 def embed(inputs: str | list[str]) -> tuple[str, dict]:
     return "embed", {"input": inputs}
 

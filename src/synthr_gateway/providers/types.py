@@ -11,6 +11,7 @@ class Capability(str, Enum):
     IMAGE = "image"
     REMOVE_BACKGROUND = "remove_background"
     EMBED = "embed"
+    VISION = "vision"  # image in, text out (OCR, captioning)
 
 
 @dataclass

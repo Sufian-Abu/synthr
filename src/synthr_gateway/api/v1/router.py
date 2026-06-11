@@ -13,6 +13,7 @@ from .generate import router as generate_router
 from .image import router as image_router
 from .jobs import router as jobs_router
 from .moderate import router as moderate_router
+from .ocr import router as ocr_router
 from .removebg import router as removebg_router
 from .rewrite import router as rewrite_router
 from .seo import router as seo_router
@@ -33,6 +34,7 @@ for r in (
     classify_router,
     extract_router,
     moderate_router,
+    ocr_router,
     embed_router,
     jobs_router,
     workflow_router,

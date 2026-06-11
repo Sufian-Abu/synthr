@@ -64,3 +64,15 @@ class Provider(ABC):
     async def embed(self, texts: list[str], *, model: str | None = None) -> EmbedResult:
         """Return one embedding vector per input text."""
         raise errors.provider_error(f"Provider {self.name!r} does not support embeddings.")
+
+    async def vision(
+        self,
+        prompt: str,
+        *,
+        image_b64: str | None = None,
+        image_url: str | None = None,
+        mime: str = "image/png",
+        model: str | None = None,
+    ) -> CompletionResult:
+        """Answer `prompt` about an image (OCR, captioning). Image as base64 or a URL."""
+        raise errors.provider_error(f"Provider {self.name!r} does not support vision.")

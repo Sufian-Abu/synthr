@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator
 
 from ..core import errors
 from .base import Provider
-from .http import post_json, post_sse
+from .http import fetch_image, post_json, post_sse
 from .types import Capability, CompletionResult, EmbedResult, ImageResult, Message, ToolCall
 
 _TYPE_MAP = {
@@ -84,7 +84,7 @@ def _split_parts(parts: list[dict]) -> tuple[str, list[ToolCall]]:
 
 
 class GeminiProvider(Provider):
-    capabilities = {Capability.TEXT, Capability.IMAGE, Capability.EMBED}
+    capabilities = {Capability.TEXT, Capability.IMAGE, Capability.EMBED, Capability.VISION}
     supports_streaming = True
     supports_tools = True
     BASE = "https://generativelanguage.googleapis.com/v1beta"
@@ -204,3 +204,41 @@ class GeminiProvider(Provider):
         if not vectors:
             raise errors.provider_invalid_response("Gemini returned no embeddings.")
         return EmbedResult(vectors=vectors, model=model)
+
+    async def vision(
+        self,
+        prompt: str,
+        *,
+        image_b64: str | None = None,
+        image_url: str | None = None,
+        mime: str = "image/png",
+        model: str | None = None,
+    ) -> CompletionResult:
+        model = model or self.default_model
+        if image_b64 is None:
+            if not image_url:
+                raise errors.invalid_input("vision needs an image or image_url.")
+            image_b64, mime = await fetch_image(image_url)
+
+        body = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}, {"inlineData": {"mimeType": mime, "data": image_b64}}]}],
+            "generationConfig": {"temperature": 0.0},
+        }
+        url = f"{self.BASE}/models/{model}:generateContent?key={self.api_key}"
+        data = await post_json(url, json=body, classify_error=_gemini_error)
+
+        candidates = data.get("candidates")
+        if not candidates:
+            if (data.get("promptFeedback") or {}).get("blockReason"):
+                raise errors.provider_safety_blocked("Gemini blocked the image on safety grounds.")
+            raise errors.provider_invalid_response("Gemini returned no candidates.")
+        text, _ = _split_parts((candidates[0].get("content") or {}).get("parts", []))
+        if not text:
+            raise errors.provider_invalid_response("Gemini vision response was empty.")
+        meta = data.get("usageMetadata", {})
+        return CompletionResult(
+            text=text,
+            model=model,
+            usage={"prompt_tokens": meta.get("promptTokenCount", 0), "completion_tokens": meta.get("candidatesTokenCount", 0)},
+            raw=data,
+        )
