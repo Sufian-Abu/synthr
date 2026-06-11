@@ -254,6 +254,65 @@ Each feature takes plain inputs and returns structured data — **no prompt engi
 
 **This list is meant to grow.** Adding a feature is a small package under `features/` plus a route — and it **automatically inherits** auth, caching, rate limits, guardrails, fallback, and cost logging. Consumers don't change a line; the new capability is just *there*. (See [CONTRIBUTING.md](CONTRIBUTING.md) for the recipe.)
 
+### How form autofill works (it's dynamic)
+
+The important bit: **you define the form in the request.** The `fields` array is caller-supplied and fully dynamic — Synthr stores no schema and assumes nothing, so every form can be different. You pass the fields *you* want plus the `context` text you have; Synthr returns a value per field, or `null` (listed in `unfilled`) when it isn't in the text — it never guesses.
+
+- **Who uses it:** any app with a form (onboarding, CRM lead capture, checkout, support tickets) that has some text — an email, a chat message, a transcript, a product blurb — and wants it as structured fields.
+- **What they do:** send `{ fields: [...your form...], context: "...the text..." }`. No prompt, no per-form code.
+
+```bash
+# A support-ticket form — totally different fields, same endpoint:
+curl -X POST http://localhost:8000/v1/fillForm -H "X-Project-Key: sk_proj_demo_secret" \
+ -d '{"fields":[{"name":"priority","type":"string","options":["low","medium","high"]},
+              {"name":"category","type":"string"},{"name":"summary","type":"string"}],
+     "context":"My checkout keeps crashing on payment — urgent, I am losing sales."}'
+# → {"data":{"values":{"priority":"high","category":"checkout/payment",
+#                      "summary":"Checkout crashes on payment"},"unfilled":[]}}
+```
+
+`type` can be `string` / `number` / `integer` / `boolean`, and `options` constrains a field to a fixed set (anything else comes back `null`).
+
+### Examples for every feature
+
+All return the envelope `{ "data": …, "meta": … }`; only `data` is shown.
+
+```bash
+# Summarize
+curl …/v1/summarize -d '{"text":"<long text>","max_words":12}'
+# → {"summary":"A short, accurate summary."}
+
+# Translate
+curl …/v1/translate -d '{"text":"Good morning","target_lang":"Spanish"}'
+# → {"translation":"Buenos días"}
+
+# Rewrite
+curl …/v1/rewrite -d '{"text":"we was hoping you can help","instruction":"Make it formal."}'
+# → {"text":"We were hoping you could assist us."}
+
+# Generate (freeform)
+curl …/v1/generate -d '{"prompt":"A one-line tagline for a self-hosted AI gateway."}'
+# → {"text":"Ready-made AI for every project."}
+
+# SEO metadata
+curl …/v1/seo -d '{"content":"<your page content>"}'
+# → {"title":"…","description":"…","keywords":["…","…"]}
+
+# Image generation (needs a paid or free-tier image provider — see Providers)
+curl …/v1/image -d '{"prompt":"a red running shoe on white","size":"1024x1024"}'
+# → {"images":[{"b64":"<base64-png>","mime":"image/png"}]}
+
+# Background removal (local, free — needs the `vision` extra)
+curl …/v1/removeBackground -d '{"image":"<base64>"}'      # or {"image_url":"https://…"}
+# → {"image":{"b64":"<transparent-png>","mime":"image/png"}}
+
+# Chat (OpenAI-compatible) — see "OpenAI-compatible API" above
+curl …/v1/chat/completions -H "Authorization: Bearer sk_proj_…" \
+  -d '{"model":"<your-model>","messages":[{"role":"user","content":"hi"}]}'
+```
+
+(Every `curl …` above also needs `-H "X-Project-Key: sk_proj_…"` and `-H "Content-Type: application/json"`. The full reference is in [USAGE.md](USAGE.md).)
+
 ## Providers
 
 Pick per feature in config; swap with a one-line change, zero app code.
@@ -279,6 +338,8 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | rembg | — | — | — | — | — | — (local; background removal only) |
 
 > **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are reachable today through the [OpenAI-compatible API](#openai-compatible-api).
+
+> **Free image generation.** Text is easy to get free (Groq/Gemini); **image generation is not** — Gemini Imagen and OpenAI `gpt-image-1` are paid, and there's no longer a no-signup free image API. Free routes: **Together AI** (`black-forest-labs/FLUX.1-schnell-Free`, OpenAI-compatible — use a `kind: openai` provider with `base_url: https://api.together.xyz/v1`), **Hugging Face** or **Cloudflare Workers AI** free tiers (each needs a small adapter), or a **local** Stable-Diffusion server (ComfyUI / AUTOMATIC1111 — note **Ollama does *not* generate images**; it's text/vision only).
 
 ## Configuration
 
