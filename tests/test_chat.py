@@ -31,6 +31,18 @@ def test_chat_invalid_key_returns_openai_error(client: TestClient) -> None:
     assert err["type"] == "invalid_key" and err["message"]
 
 
+def test_chat_provider_error_in_openai_shape(client: TestClient, monkeypatch) -> None:
+    from synthr_gateway.core import errors
+
+    async def boom(*_, **__):
+        raise errors.provider_error("upstream down")
+
+    monkeypatch.setattr(client.app.state.providers["mock"], "complete", boom)
+    r = client.post("/v1/chat/completions", headers={"Authorization": "Bearer sk_proj_test"}, json=BODY)
+    assert r.status_code == 502
+    assert r.json()["error"]["type"] == "provider_error"
+
+
 def test_chat_streaming_sse(client: TestClient) -> None:
     r = client.post(
         "/v1/chat/completions",

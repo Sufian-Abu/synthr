@@ -52,3 +52,27 @@ def test_primary_serves_when_healthy(fb_app) -> None:
     r = TestClient(fb_app).post("/v1/summarize", headers=SECRET, json={"text": "hello world"})
     assert r.status_code == 200
     assert r.json()["meta"]["provider"] == "primary"
+
+
+@pytest.mark.parametrize(
+    "make_error",
+    [errors.provider_timeout, errors.provider_rate_limited, errors.provider_invalid_response],
+)
+def test_fails_over_on_recoverable_errors(fb_app, monkeypatch, make_error) -> None:
+    async def boom(*_, **__):
+        raise make_error()
+
+    monkeypatch.setattr(fb_app.state.providers["primary"], "complete", boom)
+    r = TestClient(fb_app).post("/v1/summarize", headers=SECRET, json={"text": "hello world"})
+    assert r.status_code == 200
+    assert r.json()["meta"]["provider"] == "backup"
+
+
+def test_does_not_fail_over_on_safety_block(fb_app, monkeypatch) -> None:
+    async def boom(*_, **__):
+        raise errors.provider_safety_blocked()
+
+    monkeypatch.setattr(fb_app.state.providers["primary"], "complete", boom)
+    r = TestClient(fb_app).post("/v1/summarize", headers=SECRET, json={"text": "hello world"})
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "provider_safety_blocked"

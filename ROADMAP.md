@@ -1,75 +1,71 @@
 # Synthr — Roadmap
 
-Where Synthr is, and the path from working MVP to production-grade gateway.
-✅ done · 🟡 partial · ⬜ not started
+Milestone-based. ✅ done · 🟡 partial · ⬜ not started
 
 ---
 
-## 1. Built — the MVP engine
+## v0.1 — OSS MVP  (current)
 
-| Item | Status | Note |
+Runnable end-to-end on one box; honest about its limits.
+
+| Area | Status | Note |
 |---|---|---|
-| Dual-key auth (secret/public) + origin allowlist | ✅ | keys checked against config |
-| Provider abstraction | ✅ | Gemini native + one OpenAI-compatible adapter (OpenAI/Grok/Groq/Ollama) + rembg + mock |
-| `synthr.config.yaml` — per-feature provider, limits, cache, guardrails | ✅ | |
-| Request pipeline (auth → guardrails → rate limit → cache → optimize → run → log) | ✅ | one shared runner for every feature |
-| Rate limiter (per user/feature, sliding window) | ✅ | SQLite-backed |
-| Guardrails (input PII/keyword/length, output PII redaction) | ✅ | regex-based |
-| Exact + TF-IDF semantic cache | ✅ | persists across restart |
-| Provider fallback | 🟡 | fails over on provider error; broader triggers + circuit breaker → §2 |
-| Token optimizer | 🟡 | whitespace compression only |
-| Usage + USD cost logging + HTMX dashboard | ✅ | |
-| Features: `fillForm`, `summarize`, `translate`, `image`, `removeBackground` | ✅ | |
-| Python SDK, TypeScript SDK, CLI (`init`/`keygen`/`status`) | ✅ | not yet published |
-| Dockerfile + Compose + healthcheck | ✅ | one-command boot |
+| Dual-key auth — **hashed** keys, scopes, expiry, revoke, audit-on-failure | ✅ | `synthr keygen` emits the hash |
+| Provider abstraction — per-provider adapters | ✅ | Gemini + OpenAI/Grok/Groq/Ollama + rembg + mock |
+| Per-provider JSON mode · image · typed errors · streaming · tools | ✅ | see capability matrix |
+| Request pipeline (auth → guardrails → rate limit → cache → optimize → run → log) | ✅ | one shared runner |
+| Provider fallback — error / timeout / rate-limit / invalid-response | ✅ | safety blocks don't fail over |
+| Guardrails — input PII/keyword/length + output PII redaction | ✅ | regex-based |
+| Exact + TF-IDF semantic cache · rate limiter · usage + USD cost · HTMX dashboard | ✅ | |
+| Features — fillForm, summarize, translate, rewrite, generate, seo, image, removeBackground | ✅ | catalog grows; callers change nothing |
+| OpenAI-compatible `/v1/chat/completions` (streaming + tools) | ✅ | drop-in for the OpenAI SDK |
+| Docker + Compose + healthcheck · CLI · Python & TS SDKs | ✅ | SDKs not yet published → v0.3 |
+| CI (ruff + mypy + pytest + docker build) · security preflight | ✅ | |
+| Docs — README, USAGE, SECURITY, CONTRIBUTING, ADRs | ✅ | |
 
 ---
 
-## 2. Production hardening — the real path
+## v0.2 — Production hardening
 
-The MVP runs on SQLite, single-process, with regex guardrails and config-checked keys. To carry untrusted, multi-team, high-concurrency traffic it needs:
+Carry untrusted, multi-team, higher-concurrency traffic.
 
-### Storage & scale
 - ⬜ **Postgres** backend (SQLAlchemy + Alembic); keep SQLite for dev
 - ⬜ **Redis** for cache + rate-limit counters shared across workers
-- ⬜ **Background queue** (arq/Celery/RQ) for slow image/background tasks + a job-polling endpoint
-
-### Reliability
-- ✅ **Structured provider error mapping** — per-provider error bodies → typed codes across all adapters
-- 🟡 **Fallback strategy** — fails over on timeout / rate-limit / invalid response (safety blocks deliberately don't)
+- ⬜ **Background queue** (arq/Celery) for slow image/bg tasks + a job-polling endpoint
 - ⬜ **Circuit breaker** + provider health checks
-
-### Auth & security
-- ✅ **Hashed project keys** (sha256, constant-time) + scopes + expiry + revoke + audit-on-failure; `synthr keygen` emits the hash
-- ⬜ **Online key rotation**, per-key last-used analytics, secret-manager integration
-- ✅ **SECURITY.md** threat model + responsible disclosure
-
-### Observability & control
-- ⬜ **Request tracing** (OpenTelemetry) + metrics
 - ⬜ **Per-project budgets** (hard USD caps, not just logging)
-- ⬜ **Admin UI** for projects / keys / config
-
-### Compatibility & features
-- ✅ **Drop-in OpenAI-compatible endpoint** (`POST /v1/chat/completions`) — official OpenAI SDK / LangChain / etc. point `base_url` at Synthr and inherit the whole pipeline
-- ✅ **Streaming (SSE)** — per-provider `stream_complete`, surfaced via the chat endpoint (`stream: true`)
-- ✅ **Tool calling** — OpenAI-format tools in, normalized `tool_calls` out (incl. Gemini's `functionDeclarations`), surfaced via the chat endpoint
-- ⬜ **Streamed cache + output redaction** — streaming currently bypasses both
+- ⬜ **Request tracing** (OpenTelemetry) + metrics
+- ⬜ **Online key rotation**, per-key last-used analytics, secret-manager integration
 - ⬜ **ML PII** guardrail backend (e.g. Presidio) alongside regex
 - ⬜ **Embeddings-based** semantic cache (replace TF-IDF) + eval loop
-
-### Delivery
-- ⬜ **Published SDKs** (PyPI + npm) via release-on-tag
+- ⬜ **Streamed cache + output redaction** (streaming currently bypasses both)
 - ⬜ **Load / concurrency tests**
-- ✅/🟡 **CI** (pytest + ruff + mypy on PR)
 
 ---
 
-## 3. Feature catalog — breadth (the capability layer)
+## v0.3 — SDK publishing & DX
 
-The product is *features*, not a pipe, so the catalog should keep growing. A text feature = `features/<name>/` + a route; a new kind = a provider method + a `Capability` flag.
+- ⬜ Publish **`synthr-sdk`** to **PyPI** + **npm** via release-on-tag
+- ⬜ Versioned changelog + semver
+- ⬜ Generated API docs site from the OpenAPI spec
+- ⬜ More client examples (Go, mobile, server frameworks)
 
-**Text:** ⬜ `seo` · ⬜ `rewrite` · ⬜ `classify`/`sentiment` · ⬜ `extract` · ⬜ `generate` · ⬜ `moderate`
-**Image:** ⬜ `editImage` · ⬜ `upscale` · ⬜ `variations`
-**Vision:** ⬜ `describeImage` · ⬜ `ocr` · ⬜ `detectObjects`
+---
+
+## v0.4 — Dashboard & admin
+
+- ⬜ **Admin UI** for projects / keys / config (create, rotate, revoke, scope)
+- ⬜ Dashboard: per-project budgets, alerts, cache-quality view
+- ⬜ Audit-log viewer
+
+---
+
+## Feature catalog — breadth (ongoing, any milestone)
+
+A text feature = `features/<name>/` + a route; a new kind = a provider method + a `Capability`.
+
+**Text:** ✅ `fillForm` · ✅ `summarize` · ✅ `translate` · ✅ `rewrite` · ✅ `generate` · ✅ `seo` · ⬜ `classify`/`sentiment` · ⬜ `extract` · ⬜ `moderate`
+**Image:** ✅ `image` · ⬜ `editImage` · ⬜ `upscale` · ⬜ `variations`
+**Vision:** ✅ `removeBackground` · ⬜ `describeImage` · ⬜ `ocr` · ⬜ `detectObjects`
 **Audio:** ⬜ `transcribe` · ⬜ `tts`
 **Embeddings:** ⬜ `embed` — text → vector (also powers semantic cache + search)
