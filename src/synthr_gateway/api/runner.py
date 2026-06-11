@@ -141,7 +141,10 @@ async def execute(
             provider=provider_name, model=model, cached=cached, usage=usage_data,
         )
 
-    hit = cache.get(feature, feature_cfg.cache, request_payload, guard_text)
+    # Include provider+model in the cache key so changing either invalidates stale results.
+    cache_payload = {**request_payload, "_provider": feature_cfg.provider, "_model": feature_cfg.model}
+
+    hit = cache.get(feature, feature_cfg.cache, cache_payload, guard_text)
     if hit is not None:
         log(feature_cfg.provider, feature_cfg.model, cached=True, usage_data={})
         return envelope.success(hit, feature=feature, provider=feature_cfg.provider, cached=True, request_id=request_id)
@@ -152,7 +155,7 @@ async def execute(
     if redacted:
         usage.record_event(project=auth.project_id, subject=subject, kind="output_redacted", detail="PII removed from response")
 
-    cache.set(feature, feature_cfg.cache, request_payload, data, guard_text)  # caches the redacted output
+    cache.set(feature, feature_cfg.cache, cache_payload, data, guard_text)  # caches the redacted output
     log(served_by, served_model, cached=False, usage_data=usage_data)
 
     return envelope.success(
