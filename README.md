@@ -2,16 +2,18 @@
 
 *Pronounced “sin-ther”.*
 
-**Synthr is a self-hosted AI feature gateway.** Add AI features to any app through one SDK — without exposing provider keys, rewriting prompts, or rebuilding AI infrastructure in every project.
+**Synthr is a self-hosted AI feature gateway.** Add AI features to any app through one SDK — without exposing provider keys, writing prompts, or rebuilding the same AI plumbing in every project.
+
+*Call the feature, not the model — one gateway for every project, from any stack.*
 
 - 🧩 **Ready-made AI features** — form autofill · summarize · translate · rewrite · SEO metadata · image generation · background removal *(catalog keeps growing)*
 - 📦 **One SDK for every project** — same gateway, same auth, same response shape, from frontend, backend, or any language
 - 🔌 **Provider-agnostic** — Gemini · OpenAI · Groq · Grok · Ollama · Hugging Face · rembg · mock, chosen per feature in config
 - 🛡️ **Frontend-safe** — public project keys with an origin allowlist; real provider keys never touch the browser
-- ⚙️ **Built-in AI infrastructure** — cache · rate limits · **budgets** · guardrails · provider fallback **+ circuit breaker** · **background jobs** · usage/cost dashboard, on every call
-- 🔁 **OpenAI-compatible** — point the OpenAI SDK's base URL at Synthr and migrate in minutes
+- ⚙️ **Built-in AI infrastructure** — cache · rate limits · budgets · guardrails · provider fallback + circuit breaker · background jobs · usage/cost dashboard, on every call
+- 🔁 **OpenAI-compatible** — already using the OpenAI SDK? Point its base URL at Synthr and keep your code
 
-You call the feature by name; Synthr owns the prompt, the provider, and the plumbing. **Nothing to build on your end.**
+You call a feature **by name**; Synthr owns the prompt, picks the provider, and handles the plumbing. **One setup, every project — nothing to build on your end.**
 
 ![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009688?logo=fastapi&logoColor=white)
@@ -186,65 +188,52 @@ First-party SDKs ship for **Python** and **TypeScript/JS**; every other language
 | **Backend** (Node, Python, Go, …) | `synthr` (pip) · `synthr-sdk` (npm) · REST | **secret** `sk_proj_…` |
 | **Any language / scripts / CLI** | plain REST `POST /v1/<feature>` · `curl` | secret `sk_proj_…` |
 
-The SDKs aren't published to PyPI/npm yet, so install them straight from this repo:
+The SDKs aren't published to PyPI/npm yet, so install them from this repo:
 
 ```bash
-pip install ./sdk/python          # Python   →  from synthr import AI
+pip install ./sdk/python          # Python      → from synthr import AI
 npm  install ./sdk/typescript     # TypeScript / JavaScript
 ```
 
-### Python
+The same call in each — `summarize` here, but every feature follows the same shape:
 
+**Python**
 ```python
 from synthr import AI
 
-ai = AI(key="sk_proj_...")                       # url defaults to $SYNTHR_URL or localhost:8000
-ai.fill_form(fields=[{"name": "brand", "type": "string"}], context="Nike Air Max")
-ai.summarize(text="…", max_words=20)
-ai.translate(text="Good morning", target_lang="Spanish")
+ai = AI(key="sk_proj_...")                 # url defaults to $SYNTHR_URL or http://localhost:8000
+result = ai.summarize(text="…long text…", max_words=20)
+print(result["summary"])
+# AsyncAI is identical with await. Errors raise SynthrError(.code, .message, .retry_after).
 ```
 
-`AsyncAI` is the same with `await`. Errors raise `SynthrError` (`.code`, `.message`, `.retry_after`).
-
-### TypeScript / JavaScript
-
+**TypeScript / JavaScript**
 ```ts
 import { AI } from "synthr-sdk";
 
-// Browser → public key (pk_proj_…).   Backend → secret key (sk_proj_…).
-const ai = new AI({ url: "http://localhost:8000", key: "pk_proj_demo_public" });
-const { values } = await ai.fillForm([{ name: "brand", type: "string" }], "Nike Air Max");
+const ai = new AI({ url: "http://localhost:8000", key: "sk_proj_..." });  // pk_proj_ in the browser
+const { summary } = await ai.summarize("…long text…", 20);
 ```
 
-A full **Next.js** example — secret key on the server, public key in the browser, end to end — is in **[examples/nextjs/](examples/nextjs/)**.
-
-### REST (any language)
-
+**REST (any language)**
 ```bash
-curl -X POST http://localhost:8000/v1/fillForm \
+curl -X POST http://localhost:8000/v1/summarize \
   -H "Content-Type: application/json" \
-  -H "X-Project-Key: sk_proj_demo_secret" \
-  -d '{"fields":[{"name":"brand","type":"string"}],"context":"Nike Air Max size 10"}'
+  -H "X-Project-Key: sk_proj_..." \
+  -d '{"text":"…long text…","max_words":20}'
 ```
 
-### Go (standard library)
-
-No SDK required — a single `net/http` call against the same endpoint:
-
+**Go (standard library — no SDK needed)**
 ```go
-body, _ := json.Marshal(map[string]any{"text": "Synthr is a self-hosted AI gateway.", "max_words": 8})
+body, _ := json.Marshal(map[string]any{"text": "…long text…", "max_words": 20})
 req, _ := http.NewRequest("POST", "http://localhost:8000/v1/summarize", bytes.NewReader(body))
 req.Header.Set("Content-Type", "application/json")
-req.Header.Set("X-Project-Key", "sk_proj_demo_secret")
+req.Header.Set("X-Project-Key", "sk_proj_...")
 resp, _ := http.DefaultClient.Do(req)
 defer resp.Body.Close()
-
-var out struct {
-    Data struct{ Summary string } `json:"data"`
-}
-json.NewDecoder(resp.Body).Decode(&out)
-fmt.Println(out.Data.Summary)
 ```
+
+A full **Next.js** example — secret key on the server, public key in the browser — is in **[examples/nextjs/](examples/nextjs/)**.
 
 ### CLI
 
@@ -388,18 +377,6 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Hugging Face | `huggingface` | **free text-to-image** (FLUX / SDXL); token starts `hf_` |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 
-**Capability matrix** — what each provider can actually do (the gateway checks this before routing):
-
-| Provider | Text | JSON mode | Image | Embed | Streaming | Tools | Needs key |
-|---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| Gemini | ✓ | ✓ native schema | ✓ Imagen | ✓ | ✓ | ✓ | ✓ |
-| OpenAI | ✓ | ✓ strict `json_schema` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Grok (xAI) | ✓ | ✓ `json_object` | ✓ | — | ✓ | ✓ | ✓ |
-| Groq | ✓ | ✓ `json_object` | — | — | ✓ | ✓ | ✓ |
-| Ollama | ✓ | ✓ `json_object` | — | ✓ | ✓ | ✓ | — (local) |
-| Hugging Face | — | — | ✓ FLUX / SDXL (free) | — | — | — | ✓ (free `hf_`) |
-| rembg | — | — | — | — | — | — | — (local; background removal only) |
-
 > **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are reachable today through the [OpenAI-compatible API](#openai-compatible-api).
 
 > **Free image generation.** Text is easy to get free (Groq/Gemini); **image generation is not** — Gemini Imagen and OpenAI `gpt-image-1` are paid. Synthr ships a built-in **Hugging Face** provider for **free** text-to-image: grab a free token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens), put it in `.env` as `HF_TOKEN`, and point the `image` feature at it:
@@ -413,39 +390,37 @@ Pick per feature in config; swap with a one-line change, zero app code.
 
 ## Configuration
 
-One file decides everything. A feature names its provider, its guardrails, and its cache mode:
+One file — `synthr.config.yaml` — wires everything: the **providers** (and their keys), which provider powers each **feature**, and per-**project** keys, limits, and budgets. The shape:
 
 ```yaml
-features:
-  fillForm:
-    provider: gemini
-    model: gemini-flash-latest
-    frontend_safe: true
-    fallback:
-      provider: ollama              # used if the primary errors
-      model: llama3.2
-    cache:
-      enabled: true
-      mode: exact
-    guardrails:
-      block_pii: true               # block a card / SSN / email before it reaches the model
-      max_prompt_length: 4000
+providers:                          # define only the ones you use; keys come from .env
+  gemini: { kind: gemini, api_key: "${GEMINI_KEY}" }
+  groq:   { kind: groq,   api_key: "${GROQ_KEY}" }
 
+features:
   summarize:
-    provider: groq
+    provider: groq                  # which provider runs this feature
     model: llama-3.3-70b-versatile
-    cache:
-      enabled: true
-      mode: similar                 # TF-IDF semantic cache
-      similarity_threshold: 0.9
-    guardrails:
-      redact_output_pii: true       # scrub PII out of the response
+    frontend_safe: true             # callable from a public (browser) key
+    fallback: { provider: gemini, model: gemini-flash-latest }   # used if the primary errors
+    cache: { enabled: true, mode: exact }
+    guardrails: { redact_output_pii: true }                      # scrub PII from the response
+
+projects:
+  demo:
+    keys:
+      - { id: sk_proj_demo_secret, type: secret }
+      - { id: pk_proj_demo_public, type: public, allowed_origins: ["http://localhost:3000"] }
+    limits: { per_user: { daily_requests: 100 } }
+    budget: { daily_usd: 5, daily_requests: 5000 }               # hard caps — optional
 ```
+
+Pointing a feature at a different provider is a one-line change, with no application code. The full, commented file is **[synthr.config.example.yaml](synthr.config.example.yaml)**, and `synthr init` scaffolds it for you.
 
 ## Under the hood
 
 - **Auth** — dual keys: `sk_proj_…` for backends, `pk_proj_…` for browsers (origin-checked, feature-gated). Keys are matched by **sha256 hash** (constant-time compare) and support **scopes, expiry, and revoke**; auth failures are logged as audit events. **CORS** is opened only to the origins declared on public keys (no wildcard), so browser calls actually work. Real provider keys never leave the gateway.
-- **Cache** — exact match by default; opt-in **TF-IDF semantic** cache for text features, with a conservative similarity threshold so it never serves a fuzzy answer it can't justify.
+- **Cache** — exact match by default; opt-in **TF-IDF semantic** cache for text features, with a conservative similarity threshold (tune or disable it per feature).
 - **Rate limits** — sliding window per user, per day/week/month.
 - **Budgets** — hard per-project caps (daily/monthly request + USD, and per-feature daily) — over-limit requests are rejected with `402 budget_exceeded`.
 - **Guardrails** — regex PII/keyword/length checks on input; PII redaction on output. Blocks are logged.
