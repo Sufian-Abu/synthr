@@ -11,6 +11,7 @@ from .extract import router as extract_router
 from .fillform import router as fillform_router
 from .generate import router as generate_router
 from .image import router as image_router
+from .jobs import router as jobs_router
 from .moderate import router as moderate_router
 from .removebg import router as removebg_router
 from .rewrite import router as rewrite_router
@@ -32,6 +33,7 @@ for r in (
     extract_router,
     moderate_router,
     embed_router,
+    jobs_router,
     chat_router,
 ):
     router.include_router(r)

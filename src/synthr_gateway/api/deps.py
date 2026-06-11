@@ -6,6 +6,7 @@ from fastapi import Request
 
 from ..cache import CacheManager
 from ..config import Config
+from ..jobs import JobManager, JobStore
 from ..providers import Provider
 from ..ratelimit import RateLimiter
 from ..usage import UsageLog
@@ -29,3 +30,11 @@ def get_usage(request: Request) -> UsageLog:
 
 def get_limiter(request: Request) -> RateLimiter:
     return request.app.state.limiter
+
+
+def get_jobs_store(request: Request) -> JobStore:
+    return request.app.state.jobs_store
+
+
+def get_jobs(request: Request) -> JobManager:
+    return request.app.state.jobs

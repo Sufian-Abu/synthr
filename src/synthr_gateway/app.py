@@ -19,6 +19,7 @@ from .config.preflight import run_preflight
 from .core.envelope import error_payload
 from .core.errors import SynthrError
 from .dashboard import router as dashboard_router
+from .jobs import JobManager, JobStore
 from .providers.registry import build_providers
 from .ratelimit import RateLimiter
 from .storage import Database
@@ -58,6 +59,9 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
     app.state.cache = CacheManager(db)
     app.state.usage = UsageLog(db)
     app.state.limiter = RateLimiter(db)
+    jobs_store = JobStore(db)
+    app.state.jobs_store = jobs_store
+    app.state.jobs = JobManager(jobs_store)
 
     # CORS so browsers can use public keys cross-origin. The allow-list is exactly the
     # origins declared on public (pk_proj_) keys — no wildcard.

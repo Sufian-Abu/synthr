@@ -70,5 +70,9 @@ def provider_safety_blocked(message: str = "The provider blocked the request on 
     return SynthrError("provider_safety_blocked", message, 400)
 
 
+def not_found(message: str = "Not found.") -> SynthrError:
+    return SynthrError("not_found", message, 404)
+
+
 def internal_error(message: str) -> SynthrError:
     return SynthrError("internal_error", message, 500)

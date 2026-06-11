@@ -53,6 +53,18 @@ CREATE TABLE IF NOT EXISTS rate_events (
 CREATE INDEX IF NOT EXISTS idx_rate_scope_ts ON rate_events(scope, ts);
 CREATE INDEX IF NOT EXISTS idx_usage_ts ON usage(ts);
 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+CREATE TABLE IF NOT EXISTS jobs (
+    id         TEXT PRIMARY KEY,
+    ts         REAL NOT NULL,
+    updated    REAL NOT NULL,
+    project    TEXT,
+    subject    TEXT,
+    feature    TEXT,
+    status     TEXT NOT NULL,
+    result     TEXT,
+    error_code TEXT,
+    error_msg  TEXT
+);
 """
 
 # Columns added after v1 — applied to pre-existing usage tables.
