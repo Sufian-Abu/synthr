@@ -20,7 +20,7 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 1100, "height": 900})
+        page = browser.new_page(viewport={"width": 1100, "height": 900}, device_scale_factor=2)
         page.goto(URL, wait_until="networkidle")
         page.wait_for_timeout(800)  # let HTMX fill in
         page.screenshot(path=str(OUT), full_page=True)

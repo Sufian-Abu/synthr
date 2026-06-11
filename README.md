@@ -30,7 +30,7 @@ You call the feature by name; Synthr owns the prompt, the provider, and the plum
 
 ## Contents
 
-[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why Synthr](#why-synthr--vs-openai-sdk-litellm-langchain) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why Synthr](#why-synthr--vs-openai-sdk-litellm-langchain) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -66,6 +66,20 @@ None of this is the *feature*. It's the same plumbing, re-soldered in every repo
 
 **One setup. Every project. No repeated plumbing.**
 
+## See it in action
+
+The [**Next.js playground**](examples/nextjs/) calls every feature live — each result is **one API call**, with no prompts and no provider keys on the client:
+
+<p align="center">
+  <img src="docs/playground.png" alt="Synthr playground — form autofill, summarize, translate, rewrite, generate, SEO, chat, image generation, and background removal, each one API call" width="760">
+</p>
+
+And the built-in **dashboard** answers "what is AI costing us?" — requests, cache-hit rate, tokens, spend, and per-feature / per-provider breakdowns, per project:
+
+<p align="center">
+  <img src="docs/dashboard.png" alt="Synthr usage dashboard — requests, cache-hit rate, tokens, estimated spend, per-feature and per-provider breakdowns" width="760">
+</p>
+
 ## What Synthr does
 
 Synthr is a **self-hosted gateway that turns AI into ready-made features**. Instead of standing up a model and engineering prompts, your app calls a capability — Synthr owns the prompt, the provider, and the plumbing behind it.
@@ -84,6 +98,7 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 - **Embed** — text → vectors (for search / similarity)
 - **Generate images** — from a text prompt
 - **Remove image backgrounds** — a local, non-LLM model
+- **OpenAI-compatible chat** — point the OpenAI SDK at `/v1/chat/completions`
 
 **The catalog keeps growing — and every feature is zero-effort for the caller.** You call the name; Synthr owns the prompt, the provider, and the plumbing. Each call automatically gets auth, caching, rate limits, guardrails, provider fallback, and cost logging. Which provider powers each feature is **one line of config** — swap it anytime with zero app code. Adding a new feature is a small package on Synthr's side; **the apps that use it change nothing.**
 
@@ -163,7 +178,13 @@ The shipped config boots with no keys (it falls back to a mock provider), so the
 
 ## Calling it
 
-First-party SDKs ship for **Python** and **TypeScript/JS**; every other language uses the **REST** endpoint directly — it's just a `POST` with a header. The endpoints and the response shape are identical across all three.
+First-party SDKs ship for **Python** and **TypeScript/JS**; every other language uses the **REST** endpoint directly — it's just a `POST` with a header. The endpoints and the response shape are identical everywhere — call the **same gateway** from anywhere:
+
+| Where | How | Key |
+|---|---|---|
+| **Frontend / browser** | `synthr-sdk` (npm) or `fetch` | **public** `pk_proj_…` — origin-locked, browser-safe |
+| **Backend** (Node, Python, Go, …) | `synthr` (pip) · `synthr-sdk` (npm) · REST | **secret** `sk_proj_…` |
+| **Any language / scripts / CLI** | plain REST `POST /v1/<feature>` · `curl` | secret `sk_proj_…` |
 
 The SDKs aren't published to PyPI/npm yet, so install them straight from this repo:
 
@@ -435,13 +456,7 @@ features:
 
 ## Dashboard
 
-`/dashboard` is server-rendered (HTMX, no build step) and refreshes itself. It shows total requests, cache-hit rate, tokens, estimated spend, guardrail/redaction events, and per-feature / per-provider breakdowns — all from the SQLite usage log.
-
-<p align="center">
-  <img src="docs/dashboard.png" alt="Synthr usage dashboard — requests, cache-hit rate, tokens, estimated spend, and per-feature / per-provider breakdowns" width="720">
-</p>
-
-*(Regenerate with `python scripts/capture_dashboard.py` while the gateway is running.)*
+`/dashboard` is server-rendered (HTMX, no build step) and refreshes itself. It shows total requests, cache-hit rate, tokens, estimated spend, guardrail/redaction events, and per-feature / per-provider breakdowns — all from the SQLite usage log. (Screenshot in [See it in action](#see-it-in-action); regenerate it with `python scripts/capture_dashboard.py`.)
 
 ## Project layout
 
