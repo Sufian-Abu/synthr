@@ -1,51 +1,52 @@
-# Next.js + Synthr — the dual-key flow
+# Synthr Playground (Next.js)
 
-A minimal Next.js (App Router) app showing the two ways a real product talks to Synthr,
-and **why there are two key types**:
+An interactive demo of **every Synthr feature**, called by name. Type a prompt, watch it work —
+the app writes no prompts, holds no provider keys, and does no parsing. It just calls the gateway.
 
-1. **Server → secret key (`sk_proj_…`).** A Route Handler (`app/api/summarize/route.ts`)
-   runs on the server, holds the secret key, and calls Synthr. The key never reaches the
-   browser. Use this for backend-only features (e.g. `image`) and anything sensitive.
+Features on the page:
 
-2. **Browser → public key (`pk_proj_…`).** A client component calls Synthr **directly** with
-   a public key. Public keys only work from an allow-listed `Origin` and only for features
-   marked `frontend_safe: true` in `synthr.config.yaml` — so it's safe to ship in client JS.
+- **Form autofill** — describe something in plain words; an actual form fills in (brand, size, color, in-stock).
+- **Summarize**, **Translate**, **Rewrite**, **Generate**, **SEO metadata** — text in, result out.
+- **Chat** — the OpenAI-compatible `/v1/chat/completions` endpoint.
+- **Image generation** — prompt → image (needs an image-capable provider key on the gateway).
+- (Background removal exists too — it needs the gateway's `vision` extra + an upload, so it's left off the page.)
+
+## How it talks to the gateway
+
+The browser only ever calls this app's own `app/api/run/route.ts`, which proxies to the gateway
+**server-side with the secret key** — so the secret never reaches the browser:
 
 ```
-Browser ──(public pk_)────────────────► Synthr   (frontend_safe features only, origin-checked)
-Browser ──► Next.js route ──(secret sk_)► Synthr   (everything; secret key stays server-side)
+Browser ──► /api/run (Next server, holds sk_) ──► Synthr gateway ──► provider
 ```
+
+> **The dual-key model:** you can also call the gateway **directly from the browser** with a
+> *public* key (`pk_proj_…`), which only works from an allow-listed origin and only for
+> `frontend_safe` features. The gateway sends CORS for exactly those origins. This demo uses
+> the server proxy for simplicity, but `pk_` + CORS is what makes browser-direct calls safe.
 
 ## Run it
 
-1. Start a Synthr gateway (from the repo root): `docker compose up` — the shipped demo config
-   already defines `sk_proj_demo_secret`, `pk_proj_demo_public` (origin `http://localhost:3000`),
-   and a `summarize` + `fillForm` feature.
+1. Start a Synthr gateway from the repo root (`synthr-gateway` or `docker compose up`). It needs
+   the demo keys and the features the page uses — the shipped `synthr.config.example.yaml` has
+   them (text features run on any provider you've keyed; Groq/Gemini both work).
 2. In this folder:
    ```bash
-   cp .env.local.example .env.local
-   npm install        # pulls synthr-sdk from ../../sdk/typescript
-   npm run dev        # http://localhost:3000
+   cp .env.local.example .env.local      # points at the demo keys
+   npm install                           # next + react (first run is slow)
+   npm run dev                           # wait for: ✓ Ready ... http://localhost:3000
    ```
-3. Click **Summarize (via server)** and **Fill form (browser, public key)**.
-
-## What to notice
-
-- `SYNTHR_SECRET_KEY` has **no** `NEXT_PUBLIC_` prefix — Next.js keeps it server-only. The
-  secret key is never in the bundle.
-- `NEXT_PUBLIC_SYNTHR_PUBLIC_KEY` *is* exposed to the browser — that's fine, because it's a
-  public key restricted by origin + `frontend_safe`. Try calling a backend-only feature
-  (like `image`) with it and Synthr returns `feature_not_allowed`.
+3. Open **http://localhost:3000** and try the cards — start with **Form autofill**.
 
 ## Troubleshooting
 
-- **`http://localhost:3000` won't connect.** The dev server isn't running. Run `npm install`
-  then `npm run dev`, and wait for `✓ Ready ... Local: http://localhost:3000` before opening it.
-- **The browser "Fill form" button fails with a CORS error.** The gateway opens CORS only to
-  the origins on your public keys. Make sure `pk_proj_demo_public` lists `http://localhost:3000`
-  under `allowed_origins`, and **restart the gateway** after editing the config.
-- **Calls return `502` / provider errors.** The gateway can't reach the configured provider —
-  add the provider's key to the gateway's `.env`, or set the feature's `provider: mock` for an
-  offline run.
-- **`401 invalid_key`.** The keys in `.env.local` don't match the gateway's config. Use the
-  demo keys (`sk_proj_demo_secret` / `pk_proj_demo_public`) or your own.
+- **`http://localhost:3000` won't connect.** The dev server isn't running. Run `npm install` then
+  `npm run dev`, and wait for `✓ Ready` before opening it.
+- **`TypeError: Failed to fetch`.** The gateway isn't reachable or lacks CORS. Make sure it's
+  running on `:8000`; if you call it browser-direct with a public key, restart it after editing
+  `allowed_origins`.
+- **A card returns `502` / provider error.** The gateway can't reach that feature's provider —
+  add the provider's key to the gateway's `.env`, or set the feature's `provider: mock`.
+  (Image needs an image-capable provider; text features work on Groq/Gemini.)
+- **`401 invalid_key`.** The key in `.env.local` doesn't match the gateway config — use
+  `sk_proj_demo_secret` or your own.
