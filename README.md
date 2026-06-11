@@ -6,7 +6,7 @@
 
 *Call the feature, not the model — one gateway for every project, from any stack.*
 
-- 🧩 **Ready-made AI features** — form autofill · summarize · translate · rewrite · SEO · classify · extract · **OCR** · image generation · background removal *(catalog keeps growing)*
+- 🧩 **Ready-made AI features** — form autofill · summarize · translate · rewrite · generate · SEO · classify · extract · moderate · embed · OCR · image generation · background removal · OpenAI-compatible chat *(catalog keeps growing)*
 - 📦 **One SDK for every project** — same gateway, same auth, same response shape, from frontend, backend, or any language
 - 🔌 **Provider-agnostic** — Gemini · OpenAI · Groq · Grok · Ollama · Hugging Face · rembg · mock, chosen per feature in config
 - 🛡️ **Frontend-safe** — public project keys with an origin allowlist; real provider keys never touch the browser
