@@ -14,6 +14,7 @@ from .api.health import router as health_router
 from .api.v1.router import router as v1_router
 from .cache import CacheManager
 from .config import load_config
+from .config.preflight import run_preflight
 from .core.envelope import error_payload
 from .core.errors import SynthrError
 from .dashboard import router as dashboard_router
@@ -47,6 +48,7 @@ def create_app(config_path: str | Path | None = None) -> FastAPI:
     )
 
     config = load_config(config_path)
+    run_preflight(config)  # warn on dev-secret / plaintext keys / open public keys
     db = Database(config.gateway.db_path)
 
     app.state.config = config

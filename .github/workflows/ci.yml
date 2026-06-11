@@ -26,3 +26,10 @@ jobs:
 
       - name: Test (pytest)
         run: pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t synthr:ci .
