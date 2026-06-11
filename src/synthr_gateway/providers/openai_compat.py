@@ -20,7 +20,7 @@ from collections.abc import AsyncIterator
 from ..core import errors
 from .base import Provider
 from .http import post_json, post_sse
-from .types import Capability, CompletionResult, ImageResult, Message, ToolCall
+from .types import Capability, CompletionResult, EmbedResult, ImageResult, Message, ToolCall
 
 DEFAULT_BASE_URL = {
     "openai": "https://api.openai.com/v1",
@@ -97,9 +97,11 @@ class OpenAICompatProvider(Provider):
     supports_tools = True
     supports_streaming = True
     supports_images = False
+    supports_embeddings = False
     image_endpoint = "/images/generations"
     image_default_model: str | None = None
     image_supports_size = True
+    embed_default_model = ""
 
     def __init__(self, name: str, *, api_key: str | None = None, base_url: str | None = None) -> None:
         self.name = name
@@ -108,6 +110,8 @@ class OpenAICompatProvider(Provider):
         self.capabilities = {Capability.TEXT}
         if self.supports_images:
             self.capabilities.add(Capability.IMAGE)
+        if self.supports_embeddings:
+            self.capabilities.add(Capability.EMBED)
 
     @property
     def _headers(self) -> dict:
@@ -215,12 +219,31 @@ class OpenAICompatProvider(Provider):
             raise errors.provider_invalid_response(f"{self.kind}: image response had no data.")
         return ImageResult(images=images, model=model, raw=data)
 
+    # ── embeddings ────────────────────────────────────────────────────────
+    async def embed(self, texts: list[str], *, model: str | None = None) -> EmbedResult:
+        if not self.supports_embeddings:
+            raise errors.provider_error(f"{self.kind} does not support embeddings.")
+        model = model or self.embed_default_model
+        data = await post_json(
+            f"{self.base_url}/embeddings",
+            json={"model": model, "input": texts},
+            headers=self._headers,
+            classify_error=self._classify_error,
+        )
+        vectors = [row.get("embedding", []) for row in data.get("data", [])]
+        if not vectors:
+            raise errors.provider_invalid_response(f"{self.kind}: embeddings response had no data.")
+        usage = data.get("usage", {})
+        return EmbedResult(vectors=vectors, model=model, usage={"prompt_tokens": usage.get("prompt_tokens", 0)})
+
 
 class OpenAIProvider(OpenAICompatProvider):
     kind = "openai"
     supports_images = True
+    supports_embeddings = True
     image_default_model = "gpt-image-1"
     image_supports_size = True
+    embed_default_model = "text-embedding-3-small"
 
     def _apply_json_mode(self, payload: dict, json_schema: dict) -> None:
         # OpenAI supports strict structured outputs — stronger than json_object.
@@ -245,6 +268,8 @@ class GroqProvider(OpenAICompatProvider):
 class OllamaProvider(OpenAICompatProvider):
     kind = "ollama"
     supports_images = False  # text-only via the OpenAI-compat endpoint
+    supports_embeddings = True
+    embed_default_model = "nomic-embed-text"
 
     def _classify_error(self, status: int, text: str, headers=None) -> errors.SynthrError | None:
         return _ollama_error(status, text, headers)

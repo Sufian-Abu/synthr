@@ -64,6 +64,10 @@ features:
     provider: mock
     frontend_safe: true
     cache: { enabled: false }
+  embed:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
 projects:
   demo:
     keys:

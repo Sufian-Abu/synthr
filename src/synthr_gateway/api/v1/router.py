@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from .chat import router as chat_router
 from .classify import router as classify_router
+from .embed import router as embed_router
 from .extract import router as extract_router
 from .fillform import router as fillform_router
 from .generate import router as generate_router
@@ -30,6 +31,7 @@ for r in (
     classify_router,
     extract_router,
     moderate_router,
+    embed_router,
     chat_router,
 ):
     router.include_router(r)

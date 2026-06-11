@@ -2,13 +2,14 @@
 
 from .base import Provider
 from .registry import build_providers
-from .types import Capability, CompletionResult, ImageResult, Message, ToolCall
+from .types import Capability, CompletionResult, EmbedResult, ImageResult, Message, ToolCall
 
 __all__ = [
     "Provider",
     "build_providers",
     "Capability",
     "CompletionResult",
+    "EmbedResult",
     "ImageResult",
     "Message",
     "ToolCall",

@@ -14,7 +14,7 @@ from collections.abc import AsyncIterator
 from ..core import errors
 from .base import Provider
 from .http import post_json, post_sse
-from .types import Capability, CompletionResult, ImageResult, Message, ToolCall
+from .types import Capability, CompletionResult, EmbedResult, ImageResult, Message, ToolCall
 
 _TYPE_MAP = {
     "string": "STRING",
@@ -84,11 +84,12 @@ def _split_parts(parts: list[dict]) -> tuple[str, list[ToolCall]]:
 
 
 class GeminiProvider(Provider):
-    capabilities = {Capability.TEXT, Capability.IMAGE}
+    capabilities = {Capability.TEXT, Capability.IMAGE, Capability.EMBED}
     supports_streaming = True
     supports_tools = True
     BASE = "https://generativelanguage.googleapis.com/v1beta"
     IMAGE_DEFAULT_MODEL = "imagen-4.0-generate-001"
+    EMBED_DEFAULT_MODEL = "text-embedding-004"
 
     def __init__(self, name: str, *, api_key: str | None, default_model: str = "gemini-flash-latest") -> None:
         self.name = name
@@ -193,3 +194,13 @@ class GeminiProvider(Provider):
         if not images:
             raise errors.provider_invalid_response("Gemini image response had no predictions.")
         return ImageResult(images=images, model=model, raw=data)
+
+    async def embed(self, texts: list[str], *, model: str | None = None) -> EmbedResult:
+        model = model or self.EMBED_DEFAULT_MODEL
+        body = {"requests": [{"model": f"models/{model}", "content": {"parts": [{"text": t}]}} for t in texts]}
+        url = f"{self.BASE}/models/{model}:batchEmbedContents?key={self.api_key}"
+        data = await post_json(url, json=body, classify_error=_gemini_error)
+        vectors = [e.get("values", []) for e in data.get("embeddings", [])]
+        if not vectors:
+            raise errors.provider_invalid_response("Gemini returned no embeddings.")
+        return EmbedResult(vectors=vectors, model=model)

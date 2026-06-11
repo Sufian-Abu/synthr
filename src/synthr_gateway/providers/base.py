@@ -11,7 +11,7 @@ from abc import ABC
 from collections.abc import AsyncIterator
 
 from ..core import errors
-from .types import Capability, CompletionResult, ImageResult, Message
+from .types import Capability, CompletionResult, EmbedResult, ImageResult, Message
 
 
 class Provider(ABC):
@@ -60,3 +60,7 @@ class Provider(ABC):
     async def remove_background(self, image: bytes) -> bytes:
         """Return a transparent PNG with the background removed."""
         raise errors.provider_error(f"Provider {self.name!r} does not support background removal.")
+
+    async def embed(self, texts: list[str], *, model: str | None = None) -> EmbedResult:
+        """Return one embedding vector per input text."""
+        raise errors.provider_error(f"Provider {self.name!r} does not support embeddings.")

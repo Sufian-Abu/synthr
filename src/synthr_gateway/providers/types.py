@@ -10,6 +10,7 @@ class Capability(str, Enum):
     TEXT = "text"
     IMAGE = "image"
     REMOVE_BACKGROUND = "remove_background"
+    EMBED = "embed"
 
 
 @dataclass
@@ -42,3 +43,10 @@ class ImageResult:
     images: list[dict]  # each: {"b64": ..., "mime": ...} or {"url": ...}
     model: str
     raw: dict | None = None
+
+
+@dataclass
+class EmbedResult:
+    vectors: list[list[float]]
+    model: str
+    usage: dict = field(default_factory=dict)

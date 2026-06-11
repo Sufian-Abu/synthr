@@ -12,13 +12,13 @@ import base64
 import json
 
 from .base import Provider
-from .types import Capability, CompletionResult, ImageResult, Message
+from .types import Capability, CompletionResult, EmbedResult, ImageResult, Message
 
 _FAKE_PNG_B64 = base64.b64encode(b"mock-image").decode()
 
 
 class MockProvider(Provider):
-    capabilities = {Capability.TEXT, Capability.IMAGE, Capability.REMOVE_BACKGROUND}
+    capabilities = {Capability.TEXT, Capability.IMAGE, Capability.REMOVE_BACKGROUND, Capability.EMBED}
 
     def __init__(self, name: str = "mock") -> None:
         self.name = name
@@ -51,3 +51,7 @@ class MockProvider(Provider):
 
     async def remove_background(self, image: bytes) -> bytes:
         return image  # echo the input — exercises the pipeline without a model
+
+    async def embed(self, texts: list[str], *, model: str | None = None) -> EmbedResult:
+        # deterministic 3-dim vectors — no model, just exercises the pipeline
+        return EmbedResult(vectors=[[float(len(t)), 0.0, 1.0] for t in texts], model=model or "mock")
