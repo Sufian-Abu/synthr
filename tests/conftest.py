@@ -40,6 +40,18 @@ features:
     provider: mock
     frontend_safe: true
     cache: { enabled: false }
+  generate:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
+  rewrite:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
+  seo:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
 projects:
   demo:
     keys:

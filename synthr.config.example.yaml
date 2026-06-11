@@ -104,6 +104,35 @@ features:
     guardrails:
       redact_output_pii: true
 
+  generate:
+    provider: gemini
+    model: gemini-flash-latest
+    frontend_safe: true
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 60
+
+  rewrite:
+    provider: gemini
+    model: gemini-flash-latest
+    frontend_safe: true
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 60
+    guardrails:
+      redact_output_pii: true
+
+  seo:
+    provider: gemini
+    model: gemini-flash-latest
+    frontend_safe: true
+    cache:
+      enabled: true
+      mode: exact
+      ttl_minutes: 1440
+
   # Drop-in OpenAI-compatible endpoint: POST /v1/chat/completions.
   # Point the official OpenAI SDK at this gateway; the request's `model` is
   # forwarded to the provider chosen here. Supports streaming and tools.
