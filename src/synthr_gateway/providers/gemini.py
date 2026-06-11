@@ -88,7 +88,7 @@ class GeminiProvider(Provider):
     supports_streaming = True
     supports_tools = True
     BASE = "https://generativelanguage.googleapis.com/v1beta"
-    IMAGE_DEFAULT_MODEL = "imagen-3.0-generate-002"
+    IMAGE_DEFAULT_MODEL = "imagen-4.0-generate-001"
 
     def __init__(self, name: str, *, api_key: str | None, default_model: str = "gemini-flash-latest") -> None:
         self.name = name

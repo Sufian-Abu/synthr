@@ -23,6 +23,7 @@ dev = [
 ]
 vision = [
     "rembg>=2.0",
+    "onnxruntime>=1.17",  # rembg's inference engine (no longer bundled by rembg itself)
     "pillow>=10",
 ]
 semantic = [

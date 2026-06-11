@@ -191,6 +191,55 @@ function ImageGen() {
   );
 }
 
+// ── Background removal (local, free) ─────────────────────────────────────
+const checker: CSSProperties = {
+  backgroundImage:
+    "linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%)",
+  backgroundSize: "16px 16px",
+  backgroundPosition: "0 0,0 8px,8px -8px,-8px 0",
+};
+
+function BgRemove() {
+  const [src, setSrc] = useState("");
+  const [b64, setB64] = useState("");
+  const [result, setResult] = useState("");
+  const { busy, error, call } = useRunner();
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      setSrc(dataUrl);
+      setB64(dataUrl.split(",")[1] ?? "");
+      setResult("");
+    };
+    reader.readAsDataURL(f);
+  }
+
+  const go = () =>
+    call(async () => {
+      const data = await run("removeBackground", { image: b64 });
+      setResult(data.image?.b64 ?? "");
+    });
+
+  return (
+    <div style={card}>
+      <h3 style={h3}>🪄 Background removal</h3>
+      <p style={sub}>Local & free (rembg) — upload an image, get a transparent PNG back. First run downloads the model.</p>
+      <input type="file" accept="image/*" onChange={onFile} style={{ fontSize: 13 }} />
+      <button style={btn} onClick={go} disabled={busy || !b64}>Remove background</button>
+      <Result busy={busy} error={error}>
+        <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+          {src && <img alt="input" src={src} style={{ maxWidth: 150, borderRadius: 8 }} />}
+          {result && <img alt="output" src={`data:image/png;base64,${result}`} style={{ maxWidth: 150, borderRadius: 8, ...checker }} />}
+        </div>
+      </Result>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 920, margin: "2.5rem auto", padding: "0 1rem", color: "#18181b" }}>
@@ -209,12 +258,8 @@ export default function Home() {
         <Seo />
         <TextFeature icon="💬" title="Chat (OpenAI-compatible)" desc="Raw chat via /v1/chat/completions." feature="chat" inKey="prompt" outKey="text" initial="In one sentence, what is an AI gateway?" />
         <ImageGen />
+        <BgRemove />
       </div>
-
-      <p style={{ color: "#a1a1aa", fontSize: 13, marginTop: 24 }}>
-        Background removal (<code>/v1/removeBackground</code>) also exists — it needs the gateway's <code>vision</code> extra
-        (<code>pip install '.[vision]'</code>) and an image upload, so it's omitted here.
-      </p>
     </main>
   );
 }

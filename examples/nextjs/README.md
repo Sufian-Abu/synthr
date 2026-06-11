@@ -8,8 +8,8 @@ Features on the page:
 - **Form autofill** — describe something in plain words; an actual form fills in (brand, size, color, in-stock).
 - **Summarize**, **Translate**, **Rewrite**, **Generate**, **SEO metadata** — text in, result out.
 - **Chat** — the OpenAI-compatible `/v1/chat/completions` endpoint.
-- **Image generation** — prompt → image (needs an image-capable provider key on the gateway).
-- (Background removal exists too — it needs the gateway's `vision` extra + an upload, so it's left off the page.)
+- **Image generation** — prompt → image. Needs a **paid** image plan (Imagen on a paid Gemini account, or an OpenAI `gpt-image-1` key) — the free Gemini tier can't generate images.
+- **Background removal** — upload an image → transparent PNG. Local & free via `rembg`; install the gateway's `vision` extra (`pip install -e '.[vision]'`, which now pulls `onnxruntime`).
 
 ## How it talks to the gateway
 
