@@ -8,7 +8,7 @@
 - 📦 **One SDK for every project** — same gateway, same auth, same response shape, from frontend, backend, or any language
 - 🔌 **Provider-agnostic** — Gemini · OpenAI · Groq · Grok · Ollama · Hugging Face · rembg · mock, chosen per feature in config
 - 🛡️ **Frontend-safe** — public project keys with an origin allowlist; real provider keys never touch the browser
-- ⚙️ **Built-in AI infrastructure** — cache · rate limits · guardrails · provider fallback · usage/cost dashboard, on every call
+- ⚙️ **Built-in AI infrastructure** — cache · rate limits · **budgets** · guardrails · provider fallback **+ circuit breaker** · **background jobs** · usage/cost dashboard, on every call
 - 🔁 **OpenAI-compatible** — point the OpenAI SDK's base URL at Synthr and migrate in minutes
 
 You call the feature by name; Synthr owns the prompt, the provider, and the plumbing. **Nothing to build on your end.**
@@ -18,7 +18,7 @@ You call the feature by name; Synthr owns the prompt, the provider, and the plum
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-88%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-101%20passing-3fb950)
 [![CI](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml/badge.svg)](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -54,11 +54,10 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 **Ready-made features, out of the box:**
 
 - **Fill forms** — messy text into a strict, validated schema
-- **Summarize** — condense long text to a length you choose
-- **Translate** — into any target language
-- **Rewrite** — fix grammar, change tone or length
-- **Generate text** — a freeform prompt when no named feature fits
-- **SEO metadata** — content into title, description, and keywords
+- **Summarize** · **Translate** · **Rewrite** · **Generate** — everyday text tasks
+- **SEO metadata** — content into title, description, keywords
+- **Classify** · **Extract** · **Moderate** — label text, pull structured records, flag unsafe content
+- **Embed** — text → vectors (for search / similarity)
 - **Generate images** — from a text prompt
 - **Remove image backgrounds** — a local, non-LLM model
 
@@ -98,10 +97,10 @@ Synthr runs end-to-end today, but be clear-eyed about where it is. An honest map
 | **Cache / rate-limit** | in-process + SQLite | Redis, shared across workers |
 | **Auth** | hashed keys · scopes · expiry · revoke · audit-on-failure | online rotation · per-key analytics · secret-manager |
 | **Guardrails** | regex PII / keyword / length | ML PII (e.g. Presidio) + policy engine |
-| **Fallback** | on provider error | timeout / rate-limit / invalid / safety + circuit breaker |
+| **Fallback** | timeout / rate-limit / invalid → fallback **+ circuit breaker** | per-provider health endpoint, configurable policies |
 | **Token optimizer** | whitespace compression | real token reduction (optional) |
-| **Slow tasks** (image / bg) | inline, blocking the request | background queue + job polling |
-| **Observability** | usage log + dashboard | tracing, metrics, per-project budgets |
+| **Slow tasks** (image / bg) | **background jobs** (thread-pool worker) | durable queue (arq/Celery) + retries + webhooks |
+| **Observability** | usage log · dashboard · **per-project budgets** | tracing, metrics, alerting |
 | **Delivery** | install from this repo | published SDKs · automated releases |
 | **Providers** | per-provider adapters (JSON mode · image · typed errors · streaming · tools) | broader model coverage · live provider conformance tests |
 
@@ -260,8 +259,13 @@ Each feature takes plain inputs and returns structured data — **no prompt engi
 | **Rewrite** | `POST /v1/rewrite` | Transforms `text` per an `instruction` — grammar, tone, length, style. |
 | **Generate** | `POST /v1/generate` | Freeform prompt → text. The escape hatch when no named feature fits. |
 | **SEO metadata** | `POST /v1/seo` | Turns content into a page title, meta description, and keywords. |
+| **Classify** | `POST /v1/classify` | Single-label classification over caller-defined `labels` (+ confidence). |
+| **Extract** | `POST /v1/extract` | Pulls a **list** of structured records from text (fillForm's bigger sibling). |
+| **Moderate** | `POST /v1/moderate` | Content-safety flag + categories + reason. |
+| **Embed** | `POST /v1/embed` | Text → embedding vector(s), one string or a batch. |
 | **Image generation** | `POST /v1/image` | Generates an image from a text prompt. Backend-only by default. |
 | **Background removal** | `POST /v1/removeBackground` | Strips an image background with a local `rembg` model — proof that non-LLM providers fit the same pipeline. |
+| **Background jobs** | `POST /v1/jobs` · `GET /v1/jobs/{id}` | Run any feature async (for slow image/bg work); submit, then poll for the result. |
 | **OpenAI chat** | `POST /v1/chat/completions` | [Drop-in OpenAI-compatible](#openai-compatible-api) chat for existing SDK code. |
 
 **This list is meant to grow.** Adding a feature is a small package under `features/` plus a route — and it **automatically inherits** auth, caching, rate limits, guardrails, fallback, and cost logging. Consumers don't change a line; the new capability is just *there*. (See [CONTRIBUTING.md](CONTRIBUTING.md) for the recipe.)
@@ -341,15 +345,15 @@ Pick per feature in config; swap with a one-line change, zero app code.
 
 **Capability matrix** — what each provider can actually do (the gateway checks this before routing):
 
-| Provider | Text | JSON mode | Image | Streaming | Tools | Needs key |
-|---|:--:|:--:|:--:|:--:|:--:|:--:|
-| Gemini | ✓ | ✓ native schema | ✓ Imagen | ✓ | ✓ | ✓ |
-| OpenAI | ✓ | ✓ strict `json_schema` | ✓ | ✓ | ✓ | ✓ |
-| Grok (xAI) | ✓ | ✓ `json_object` | ✓ | ✓ | ✓ | ✓ |
-| Groq | ✓ | ✓ `json_object` | — | ✓ | ✓ | ✓ |
-| Ollama | ✓ | ✓ `json_object` | — | ✓ | ✓ | — (local) |
-| Hugging Face | — | — | ✓ FLUX / SDXL (free) | — | — | ✓ (free `hf_`) |
-| rembg | — | — | — | — | — | — (local; background removal only) |
+| Provider | Text | JSON mode | Image | Embed | Streaming | Tools | Needs key |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| Gemini | ✓ | ✓ native schema | ✓ Imagen | ✓ | ✓ | ✓ | ✓ |
+| OpenAI | ✓ | ✓ strict `json_schema` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Grok (xAI) | ✓ | ✓ `json_object` | ✓ | — | ✓ | ✓ | ✓ |
+| Groq | ✓ | ✓ `json_object` | — | — | ✓ | ✓ | ✓ |
+| Ollama | ✓ | ✓ `json_object` | — | ✓ | ✓ | ✓ | — (local) |
+| Hugging Face | — | — | ✓ FLUX / SDXL (free) | — | — | — | ✓ (free `hf_`) |
+| rembg | — | — | — | — | — | — | — (local; background removal only) |
 
 > **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are reachable today through the [OpenAI-compatible API](#openai-compatible-api).
 
@@ -398,9 +402,11 @@ features:
 - **Auth** — dual keys: `sk_proj_…` for backends, `pk_proj_…` for browsers (origin-checked, feature-gated). Keys are matched by **sha256 hash** (constant-time compare) and support **scopes, expiry, and revoke**; auth failures are logged as audit events. **CORS** is opened only to the origins declared on public keys (no wildcard), so browser calls actually work. Real provider keys never leave the gateway.
 - **Cache** — exact match by default; opt-in **TF-IDF semantic** cache for text features, with a conservative similarity threshold so it never serves a fuzzy answer it can't justify.
 - **Rate limits** — sliding window per user, per day/week/month.
+- **Budgets** — hard per-project caps (daily/monthly request + USD, and per-feature daily) — over-limit requests are rejected with `402 budget_exceeded`.
 - **Guardrails** — regex PII/keyword/length checks on input; PII redaction on output. Blocks are logged.
 - **Token optimizer** — strips redundant whitespace from prompts before they go out.
-- **Fallback** — if the primary provider errors, the configured fallback serves the request and the caller never knows.
+- **Fallback + circuit breaker** — fails over to the configured fallback on timeout/rate-limit/error; after repeated failures a provider's circuit opens and it's skipped until it recovers.
+- **Background jobs** — slow features run async on a worker thread: `POST /v1/jobs` → `GET /v1/jobs/{id}`.
 - **Usage & cost** — every request logged to SQLite with tokens and an estimated USD cost; surfaced on the dashboard.
 
 ## Dashboard
@@ -448,7 +454,7 @@ synthr/
 
 ```bash
 pip install -e ".[dev]"
-pytest                  # 85 gateway tests
+pytest                  # 98 gateway tests
 ruff check src tests    # lint
 mypy                    # type-check
 ```
