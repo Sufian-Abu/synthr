@@ -43,6 +43,31 @@ These are tracked in [ROADMAP.md](ROADMAP.md) under "Production hardening". Unti
   `allowed_origins` list. Use **secret keys** only on servers.
 - Scope a deployment to a **single trusted team** until the production-hardening items ship.
 
+## Production checklist
+
+Before exposing a gateway beyond local dev, confirm:
+
+- [ ] **Strong signing secret** — `SYNTHR_SECRET` set to a long random value (not `dev-secret`).
+- [ ] **Hashed keys only** — every project key uses `hash:` (from `synthr keygen`), no plaintext `id:`.
+- [ ] **Origins locked** — every public (`pk_proj_`) key has a tight `allowed_origins` list.
+- [ ] **TLS in front** — a reverse proxy terminates HTTPS; port 8000 is not exposed directly.
+- [ ] **Secrets uncommitted** — `.env` / `synthr.config.yaml` are git-ignored; provider keys live only on the server.
+- [ ] **Limits set** — sensible per-user / per-feature rate limits for each project.
+- [ ] **Preflight clean** — boot with `SYNTHR_ENV=production` (escalates warnings) and, in CI/CD, `SYNTHR_STRICT=1` (refuses to start on any of the above).
+
+Synthr runs a security preflight on every boot and logs anything from this list that's still in dev mode.
+
+## Key rotation
+
+There is no online rotation yet (it's on the roadmap); rotate by editing config:
+
+1. `synthr keygen --label <name>` → mint a new key; it prints the key once plus a `hash:` entry.
+2. Add the new key entry to the project's `keys:` and deploy.
+3. Update the client(s) to the new key.
+4. Remove the old entry (or set `revoked: true` on it to kill it immediately and keep an audit trail).
+
+Use `scopes:` to limit a key to specific features and `expires:` to force periodic rotation.
+
 ## Reporting a vulnerability
 
 Please **do not** open a public issue for security problems. Email the maintainer (see the

@@ -267,6 +267,17 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Ollama | `ollama` | local, no key, $0 |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 
+**Capability matrix** — what each provider can actually do (the gateway checks this before routing):
+
+| Provider | Text | JSON mode | Image | Streaming | Tools | Needs key |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|
+| Gemini | ✓ | ✓ native schema | ✓ Imagen | ✓ | ✓ | ✓ |
+| OpenAI | ✓ | ✓ strict `json_schema` | ✓ | ✓ | ✓ | ✓ |
+| Grok (xAI) | ✓ | ✓ `json_object` | ✓ | ✓ | ✓ | ✓ |
+| Groq | ✓ | ✓ `json_object` | — | ✓ | ✓ | ✓ |
+| Ollama | ✓ | ✓ `json_object` | — | ✓ | ✓ | — (local) |
+| rembg | — | — | — | — | — | — (local; background removal only) |
+
 > **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are reachable today through the [OpenAI-compatible API](#openai-compatible-api).
 
 ## Configuration
@@ -340,7 +351,7 @@ synthr/
 │
 ├── examples/                  REST / Python / JS usage
 ├── tests/                     pytest suite (gateway + SDK)
-├── docs/                      architecture diagram
+├── docs/                      architecture diagram + ADRs (docs/adr/)
 ├── Dockerfile · docker-compose.yml
 └── synthr.config.example.yaml · .env.example
 ```
@@ -365,6 +376,12 @@ Deliberately not done yet:
 - **SDKs aren't published** to PyPI/npm — install from the `sdk/` folders.
 - The **token optimizer** is lossless whitespace compression — honest and conservative, not a magic 30%.
 - The **semantic cache** uses TF-IDF; swapping in embeddings is a clean upgrade.
+
+## Contributing
+
+Adding a feature or a provider is meant to be cheap — and consumers never change. See
+**[CONTRIBUTING.md](CONTRIBUTING.md)** for the recipe, the design rationale in
+**[docs/adr/](docs/adr/)**, and the security model in **[SECURITY.md](SECURITY.md)**.
 
 ## License
 
