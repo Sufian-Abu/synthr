@@ -11,7 +11,10 @@ export class AI {
     this.url = (opts.url ?? "http://localhost:8000").replace(/\/$/, "");
     this.key = opts.key;
     this.userId = opts.userId;
-    this.fetchImpl = opts.fetch ?? fetch;
+    // Bind the global fetch to globalThis — a bare `fetch` reference called as a method
+    // throws "Illegal invocation" in browsers (and undici/Node). A user-supplied fetch is
+    // used as-is (their responsibility to bind).
+    this.fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   private async call<T = unknown>(feature: string, body: unknown): Promise<T> {
