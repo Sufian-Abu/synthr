@@ -6,8 +6,10 @@ from ...providers import Provider
 from .models import OcrRequest
 
 PROMPT = (
-    "Extract all text from this image exactly as written, preserving line breaks and reading "
-    "order. Return only the text, with no commentary."
+    "You are an OCR engine. Transcribe ALL text in this image exactly as it appears — every "
+    "field, label, name, and number — preserving line breaks and reading order. Output ONLY the "
+    "transcribed text. Do NOT describe the image, the layout, or the document; do not add any "
+    "commentary. If there is no text, return an empty string."
 )
 
 
