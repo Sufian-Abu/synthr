@@ -33,7 +33,7 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 
 ## Contents
 
-[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Workflows](#workflows) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status](#status)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What you can build](#what-you-can-build) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Workflows](#workflows) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status](#status)
 
 ---
 
@@ -83,6 +83,31 @@ And the built-in **dashboard** answers "what is AI costing us?" — requests, ca
   <img src="docs/dashboard.png" alt="Synthr usage dashboard — requests, cache-hit rate, tokens, estimated spend, per-feature and per-provider breakdowns" width="760">
 </p>
 
+## What you can build
+
+Real jobs, each just a feature call or two — no prompts, no provider keys on the client:
+
+**E-commerce — turn a product description + photo into a listing**
+```python
+ai.seo(content=description)                  # title · meta description · keywords
+ai.remove_background(image=photo)            # clean, transparent product shot
+ai.extract(text=description, schema={"brand": "string", "color": "string", "size": "number"})
+```
+
+**Support / CRM — triage and digest tickets**
+```python
+ai.classify(text=ticket, labels=["bug", "billing", "feature", "question"])
+ai.summarize(text=thread, max_words=40)
+ai.moderate(text=user_message)               # flag abuse before it's stored or shown
+```
+
+**Forms & onboarding — structured data from messy input**
+```python
+ai.fill_form(fields=[...], context=email_or_transcript)
+```
+
+Need several in sequence? Chain them in one call with a [workflow](#workflows): `extract → classify → summarize → webhook`.
+
 ## What Synthr does
 
 Synthr is a **self-hosted gateway that turns AI into ready-made features**. Instead of standing up a model and engineering prompts, your app calls a capability — Synthr owns the prompt, the provider, and the plumbing behind it.
@@ -100,18 +125,7 @@ ai.seo(content=page)
 ai.remove_background(image=img)
 ```
 
-**Ready-made features, out of the box:**
-
-- **Fill forms** — messy text into a strict, validated schema
-- **Summarize** · **Translate** · **Rewrite** · **Generate** — everyday text tasks
-- **SEO metadata** — content into title, description, keywords
-- **Classify** · **Extract** · **Moderate** — label text, pull structured records, flag unsafe content
-- **Embed** — text → vectors (for search / similarity)
-- **Generate images** — from a text prompt
-- **Remove image backgrounds** — a local, non-LLM model
-- **OpenAI-compatible chat** — point the OpenAI SDK at `/v1/chat/completions`
-
-**The catalog keeps growing — and every feature is zero-effort for the caller.** You call the name; Synthr owns the prompt, the provider, and the plumbing. Each call automatically gets auth, caching, rate limits, guardrails, provider fallback, and cost logging. Which provider powers each feature is **one line of config** — swap it anytime with zero app code. Adding a new feature is a small package on Synthr's side; **the apps that use it change nothing.**
+A dozen features ship today — form autofill, summarize, translate, rewrite, generate, SEO, classify, extract, moderate, embed, image generation, background removal, plus an OpenAI-compatible chat endpoint (**[full list with examples ↓](#features)**). **Every one is zero-effort for the caller:** you call the name; Synthr owns the prompt, picks the provider, and applies auth, caching, rate limits, guardrails, fallback, and cost logging. Which provider powers each is one line of config; adding a feature is a small package on Synthr's side — the apps that use it change nothing.
 
 ## Who is this for?
 

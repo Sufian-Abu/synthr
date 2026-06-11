@@ -62,6 +62,34 @@ export class AI {
     return this.call("removeBackground", { image: opts.image, image_url: opts.imageUrl });
   }
 
+  generate(prompt: string, maxWords?: number): Promise<{ text: string }> {
+    return this.call("generate", { prompt, ...(maxWords != null ? { max_words: maxWords } : {}) });
+  }
+
+  rewrite(text: string, instruction?: string): Promise<{ text: string }> {
+    return this.call("rewrite", { text, ...(instruction ? { instruction } : {}) });
+  }
+
+  seo(content: string): Promise<{ title: string; description: string; keywords: string[] }> {
+    return this.call("seo", { content });
+  }
+
+  classify(text: string, labels: string[]): Promise<{ label: string | null; confidence: number | null }> {
+    return this.call("classify", { text, labels });
+  }
+
+  extract<T = unknown>(text: string, opts: { schema?: Record<string, string>; fields?: unknown[] }): Promise<T> {
+    return this.call<T>("extract", { text, schema: opts.schema, fields: opts.fields });
+  }
+
+  moderate(text: string): Promise<{ flagged: boolean; categories: string[]; reason: string | null }> {
+    return this.call("moderate", { text });
+  }
+
+  embed(input: string | string[]): Promise<{ model: string; dimensions: number; vectors: number[][] }> {
+    return this.call("embed", { input });
+  }
+
   /** Escape hatch for any feature, including custom ones. */
   run<T = unknown>(feature: string, payload: unknown): Promise<T> {
     return this.call<T>(feature, payload);

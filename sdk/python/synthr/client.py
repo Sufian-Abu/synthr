@@ -61,6 +61,27 @@ class AI:
     def remove_background(self, image: str | None = None, image_url: str | None = None) -> dict:
         return self._call(*p.remove_background(image, image_url))
 
+    def generate(self, prompt: str, max_words: int | None = None) -> dict:
+        return self._call(*p.generate(prompt, max_words))
+
+    def rewrite(self, text: str, instruction: str | None = None) -> dict:
+        return self._call(*p.rewrite(text, instruction))
+
+    def seo(self, content: str) -> dict:
+        return self._call(*p.seo(content))
+
+    def classify(self, text: str, labels: list[str]) -> dict:
+        return self._call(*p.classify(text, labels))
+
+    def extract(self, text: str, schema: dict | None = None, fields: list[dict] | None = None) -> dict:
+        return self._call(*p.extract(text, schema, fields))
+
+    def moderate(self, text: str) -> dict:
+        return self._call(*p.moderate(text))
+
+    def embed(self, inputs: str | list[str]) -> dict:
+        return self._call(*p.embed(inputs))
+
     def run(self, feature: str, payload: dict) -> dict:
         """Escape hatch for any feature, including custom ones."""
         return self._call(feature, payload)
@@ -118,6 +139,27 @@ class AsyncAI:
 
     async def remove_background(self, image: str | None = None, image_url: str | None = None) -> dict:
         return await self._call(*p.remove_background(image, image_url))
+
+    async def generate(self, prompt: str, max_words: int | None = None) -> dict:
+        return await self._call(*p.generate(prompt, max_words))
+
+    async def rewrite(self, text: str, instruction: str | None = None) -> dict:
+        return await self._call(*p.rewrite(text, instruction))
+
+    async def seo(self, content: str) -> dict:
+        return await self._call(*p.seo(content))
+
+    async def classify(self, text: str, labels: list[str]) -> dict:
+        return await self._call(*p.classify(text, labels))
+
+    async def extract(self, text: str, schema: dict | None = None, fields: list[dict] | None = None) -> dict:
+        return await self._call(*p.extract(text, schema, fields))
+
+    async def moderate(self, text: str) -> dict:
+        return await self._call(*p.moderate(text))
+
+    async def embed(self, inputs: str | list[str]) -> dict:
+        return await self._call(*p.embed(inputs))
 
     async def run(self, feature: str, payload: dict) -> dict:
         return await self._call(feature, payload)

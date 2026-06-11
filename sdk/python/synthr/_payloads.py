@@ -40,6 +40,45 @@ def remove_background(image_b64: str | None, image_url: str | None) -> tuple[str
     return "removeBackground", body
 
 
+def generate(prompt: str, max_words: int | None) -> tuple[str, dict]:
+    body: dict = {"prompt": prompt}
+    if max_words is not None:
+        body["max_words"] = max_words
+    return "generate", body
+
+
+def rewrite(text: str, instruction: str | None) -> tuple[str, dict]:
+    body: dict = {"text": text}
+    if instruction:
+        body["instruction"] = instruction
+    return "rewrite", body
+
+
+def seo(content: str) -> tuple[str, dict]:
+    return "seo", {"content": content}
+
+
+def classify(text: str, labels: list[str]) -> tuple[str, dict]:
+    return "classify", {"text": text, "labels": labels}
+
+
+def extract(text: str, schema: dict | None, fields: list[dict] | None) -> tuple[str, dict]:
+    body: dict = {"text": text}
+    if schema is not None:
+        body["schema"] = schema
+    if fields is not None:
+        body["fields"] = fields
+    return "extract", body
+
+
+def moderate(text: str) -> tuple[str, dict]:
+    return "moderate", {"text": text}
+
+
+def embed(inputs: str | list[str]) -> tuple[str, dict]:
+    return "embed", {"input": inputs}
+
+
 def unwrap(resp: httpx.Response) -> dict:
     """Return the `data` payload, or raise SynthrError on an error envelope."""
     if resp.status_code >= 400:
