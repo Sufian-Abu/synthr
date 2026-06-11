@@ -38,6 +38,24 @@ class UsageLog:
             )
             self.db.conn.commit()
 
+    # --- budget aggregates ---
+
+    def aggregate(self, project: str, since: float) -> dict:
+        """Requests + USD spend for a project since `since` (epoch seconds)."""
+        with self.db.lock:
+            row = self.db.conn.execute(
+                f"SELECT COUNT(*) AS requests, {_COST} AS cost FROM usage WHERE project = ? AND ts >= ?",
+                (project, since),
+            ).fetchone()
+        return {"requests": row["requests"], "cost": row["cost"]}
+
+    def feature_count(self, project: str, feature: str, since: float) -> int:
+        with self.db.lock:
+            return self.db.conn.execute(
+                "SELECT COUNT(*) FROM usage WHERE project = ? AND feature = ? AND ts >= ?",
+                (project, feature, since),
+            ).fetchone()[0]
+
     def record_event(self, *, project: str, subject: str, kind: str, detail: str) -> None:
         with self.db.lock:
             self.db.conn.execute(

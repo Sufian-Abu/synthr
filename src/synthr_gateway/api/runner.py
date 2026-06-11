@@ -16,7 +16,7 @@ from ..guardrails import apply_output, check_input
 from ..providers import Capability, Provider
 from ..ratelimit import RateLimiter, resolve_policies
 from ..security import authenticate, authorize_feature
-from ..usage import UsageLog
+from ..usage import UsageLog, enforce_budget
 
 # run(provider, model) -> (data, usage)
 FeatureRun = Callable[[Provider, str | None], Awaitable[tuple[dict, dict]]]
@@ -99,6 +99,9 @@ async def execute(
     try:
         check_input(guard_text, feature_cfg.guardrails)
         limiter.enforce(resolve_policies(config, auth.project_id, feature, subject))
+        project_cfg = config.projects.get(auth.project_id)
+        if project_cfg is not None:
+            enforce_budget(usage, project_cfg.budget, auth.project_id, feature)
     except errors.SynthrError as exc:
         block(exc)
         raise

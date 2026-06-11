@@ -72,9 +72,20 @@ class LimitsCfg(BaseModel):
     per_feature: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 
+class BudgetCfg(BaseModel):
+    """Hard, project-wide caps (rejects when exceeded). None = no cap."""
+
+    daily_usd: float | None = None
+    monthly_usd: float | None = None
+    daily_requests: int | None = None
+    monthly_requests: int | None = None
+    per_feature_daily_requests: dict[str, int] = Field(default_factory=dict)
+
+
 class ProjectCfg(BaseModel):
     keys: list[KeyCfg] = Field(default_factory=list)
     limits: LimitsCfg = LimitsCfg()
+    budget: BudgetCfg = BudgetCfg()
 
 
 class DefaultsCfg(BaseModel):

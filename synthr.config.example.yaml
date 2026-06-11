@@ -198,6 +198,13 @@ projects:
     limits:
       per_user:
         daily_requests: 50
+    # Hard caps — the project is rejected (HTTP 402) once over. Omit any you don't want.
+    budget:
+      daily_usd: 5.0
+      monthly_usd: 100.0
+      daily_requests: 5000
+      per_feature_daily_requests:
+        image: 200
 
 
 # ── Defaults ───────────────────────────────────────────────────────────────

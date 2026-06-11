@@ -74,5 +74,9 @@ def not_found(message: str = "Not found.") -> SynthrError:
     return SynthrError("not_found", message, 404)
 
 
+def budget_exceeded(message: str = "Project budget exceeded.") -> SynthrError:
+    return SynthrError("budget_exceeded", message, 402)
+
+
 def internal_error(message: str) -> SynthrError:
     return SynthrError("internal_error", message, 500)
