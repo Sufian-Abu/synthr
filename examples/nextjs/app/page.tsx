@@ -242,6 +242,47 @@ function BgRemove() {
   );
 }
 
+function Ocr() {
+  const [src, setSrc] = useState("");
+  const [b64, setB64] = useState("");
+  const [text, setText] = useState("");
+  const { busy, error, call } = useRunner();
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      setSrc(dataUrl);
+      setB64(dataUrl.split(",")[1] ?? "");
+      setText("");
+    };
+    reader.readAsDataURL(f);
+  }
+
+  const go = () =>
+    call(async () => {
+      const data = await run("ocr", { image: b64 });
+      setText(data.text ?? "");
+    });
+
+  return (
+    <div style={card}>
+      <h3 style={h3}>📄 OCR</h3>
+      <p style={sub}>Upload an image of text (receipt, screenshot, sign) → plain text. Needs a vision provider key.</p>
+      <input type="file" accept="image/*" onChange={onFile} style={{ fontSize: 13 }} />
+      <button style={btn} onClick={go} disabled={busy || !b64}>Read text</button>
+      <Result busy={busy} error={error}>
+        <div style={{ marginTop: 12 }}>
+          {src && <img alt="input" src={src} style={{ maxWidth: 150, borderRadius: 8, display: "block", marginBottom: 8 }} />}
+          {text && <div style={out}>{text}</div>}
+        </div>
+      </Result>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 920, margin: "2.5rem auto", padding: "0 1rem", color: "#18181b" }}>
@@ -261,6 +302,7 @@ export default function Home() {
         <TextFeature icon="💬" title="Chat (OpenAI-compatible)" desc="Raw chat via /v1/chat/completions." feature="chat" inKey="prompt" outKey="text" initial="In one sentence, what is an AI gateway?" />
         <ImageGen />
         <BgRemove />
+        <Ocr />
       </div>
     </main>
   );
