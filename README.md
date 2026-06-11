@@ -12,6 +12,7 @@
 - 🛡️ **Frontend-safe** — public project keys with an origin allowlist; real provider keys never touch the browser
 - ⚙️ **Built-in AI infrastructure** — cache · rate limits · budgets · guardrails · provider fallback + circuit breaker · background jobs · usage/cost dashboard, on every call
 - 🔁 **OpenAI-compatible** — already using the OpenAI SDK? Point its base URL at Synthr and keep your code
+- 🔗 **Composable** — chain features into one call: `extract → summarize → classify → webhook`
 
 You call a feature **by name**; Synthr owns the prompt, picks the provider, and handles the plumbing. **One setup, every project — nothing to build on your end.**
 
@@ -20,7 +21,7 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 ![SQLite](https://img.shields.io/badge/storage-SQLite-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker&logoColor=white)
 ![SDKs](https://img.shields.io/badge/SDKs-Python%20%2B%20TypeScript-8A2BE2)
-![Tests](https://img.shields.io/badge/tests-101%20passing-3fb950)
+![Tests](https://img.shields.io/badge/tests-108%20passing-3fb950)
 [![CI](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml/badge.svg)](https://github.com/Sufian-Abu/synthr/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -32,7 +33,7 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 
 ## Contents
 
-[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Workflows](#workflows) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -285,6 +286,7 @@ Each feature takes plain inputs and returns structured data — **no prompt engi
 | **Image generation** | `POST /v1/image` | Generates an image from a text prompt. Backend-only by default. |
 | **Background removal** | `POST /v1/removeBackground` | Strips an image background with a local `rembg` model — proof that non-LLM providers fit the same pipeline. |
 | **Background jobs** | `POST /v1/jobs` · `GET /v1/jobs/{id}` | Run any feature async (for slow image/bg work); submit, then poll for the result. |
+| **Workflows** | `POST /v1/workflow` | [Chain features](#workflows), piping outputs with `${N.key}`; optional webhook runs it as a job. |
 | **OpenAI chat** | `POST /v1/chat/completions` | [Drop-in OpenAI-compatible](#openai-compatible-api) chat for existing SDK code. |
 
 **This list is meant to grow.** Adding a feature is a small package under `features/` plus a route — and it **automatically inherits** auth, caching, rate limits, guardrails, fallback, and cost logging. Consumers don't change a line; the new capability is just *there*. (See [CONTRIBUTING.md](CONTRIBUTING.md) for the recipe.)
@@ -347,6 +349,27 @@ curl …/v1/chat/completions -H "Authorization: Bearer sk_proj_…" \
 ```
 
 (Every `curl …` above also needs `-H "X-Project-Key: sk_proj_…"` and `-H "Content-Type: application/json"`. The full reference is in [USAGE.md](USAGE.md).)
+
+## Workflows
+
+Chain features into **one call** — each step's output feeds the next via `${N.key}` (step index `.` output field). Perfect for pipelines like *extract → summarize → classify → notify*:
+
+```bash
+curl -X POST http://localhost:8000/v1/workflow \
+  -H "Content-Type: application/json" -H "X-Project-Key: sk_proj_..." \
+  -d '{
+    "steps": [
+      {"feature": "extract",   "with": {"text": "Acme billed $1290 on 2026-02-01",
+                                         "schema": {"vendor": "string", "amount": "number"}}},
+      {"feature": "summarize", "with": {"text": "Vendor ${0.vendor} was charged ${0.amount} dollars."}}
+    ]
+  }'
+# → {"data":{"steps":[{"feature":"extract","data":{"vendor":"Acme","amount":1290}},
+#                     {"feature":"summarize","data":{"summary":"Acme was charged $1290."}}],
+#            "result":{"summary":"Acme was charged $1290."}}}
+```
+
+Add a `"webhook": "https://…"` and the workflow runs as a **[background job](#features)** — the call returns a job id immediately, and Synthr POSTs the final result to your URL when it finishes. Every step runs through the full pipeline (auth, guardrails, limits, cache, fallback, cost).
 
 ## Providers
 
@@ -453,7 +476,7 @@ synthr/
 
 ```bash
 pip install -e ".[dev]"
-pytest                  # 98 gateway tests
+pytest                  # 105 gateway tests
 ruff check src tests    # lint
 mypy                    # type-check
 ```

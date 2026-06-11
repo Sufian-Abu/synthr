@@ -18,6 +18,7 @@ from .rewrite import router as rewrite_router
 from .seo import router as seo_router
 from .summarize import router as summarize_router
 from .translate import router as translate_router
+from .workflow import router as workflow_router
 
 router = APIRouter(prefix="/v1", tags=["features"])
 for r in (
@@ -34,6 +35,7 @@ for r in (
     moderate_router,
     embed_router,
     jobs_router,
+    workflow_router,
     chat_router,
 ):
     router.include_router(r)
