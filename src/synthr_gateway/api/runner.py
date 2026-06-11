@@ -14,6 +14,7 @@ from ..config import Config
 from ..core import envelope, errors
 from ..guardrails import apply_output, check_input
 from ..providers import Capability, Provider
+from ..providers.health import CircuitBreaker
 from ..ratelimit import RateLimiter, resolve_policies
 from ..security import authenticate, authorize_feature
 from ..usage import UsageLog, enforce_budget
@@ -31,30 +32,58 @@ FAILOVER_CODES = {
     "provider_invalid_response",
 }
 
+# Process-wide provider health. Module-level so it persists across requests.
+circuit_breaker = CircuitBreaker()
+
 
 async def _run_with_fallback(run, providers, feature_cfg, capability):
-    """Run on the primary; on a failover-eligible provider error, try the fallback.
+    """Run on the primary; on a failover-eligible error (or an open circuit), use the fallback.
 
     Returns (data, usage, provider, model).
     """
-    provider = providers.get(feature_cfg.provider)
+    primary = feature_cfg.provider
+    provider = providers.get(primary)
     if provider is None:
-        raise errors.internal_error(f"Provider {feature_cfg.provider!r} is not available.")
+        raise errors.internal_error(f"Provider {primary!r} is not available.")
     if capability not in provider.capabilities:
-        raise errors.internal_error(f"Provider {feature_cfg.provider!r} does not support {capability.value}.")
+        raise errors.internal_error(f"Provider {primary!r} does not support {capability.value}.")
+    fb = feature_cfg.fallback
+
+    async def _fallback():
+        """Run the fallback provider, or return None if there isn't a usable one."""
+        if fb is None:
+            return None
+        fb_provider = providers.get(fb.provider)
+        if fb_provider is None or capability not in fb_provider.capabilities:
+            return None
+        try:
+            data, usage = await run(fb_provider, fb.model)
+            circuit_breaker.record_success(fb.provider)
+            return data, usage, fb.provider, fb.model
+        except errors.SynthrError as exc:
+            if exc.code in FAILOVER_CODES:
+                circuit_breaker.record_failure(fb.provider)
+            raise
+
+    # Primary's circuit is open — skip it and go straight to the fallback if we have one.
+    if circuit_breaker.is_open(primary):
+        result = await _fallback()
+        if result is not None:
+            return result
 
     try:
         data, usage = await run(provider, feature_cfg.model)
-        return data, usage, feature_cfg.provider, feature_cfg.model
+        circuit_breaker.record_success(primary)
+        return data, usage, primary, feature_cfg.model
     except errors.SynthrError as exc:
-        fb = feature_cfg.fallback
-        if exc.code not in FAILOVER_CODES or fb is None:
+        if exc.code in FAILOVER_CODES:
+            circuit_breaker.record_failure(primary)
+        if exc.code not in FAILOVER_CODES:
             raise
-        fb_provider = providers.get(fb.provider)
-        if fb_provider is None or capability not in fb_provider.capabilities:
+        result = await _fallback()
+        if result is None:
             raise
-        data, usage = await run(fb_provider, fb.model)
-        return data, usage, fb.provider, fb.model
+        return result
 
 
 async def execute(
