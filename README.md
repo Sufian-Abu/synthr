@@ -324,6 +324,7 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Grok (xAI) | `grok` | keys start `xai-` |
 | Groq | `groq` | fast inference; keys start `gsk_` |
 | Ollama | `ollama` | local, no key, $0 |
+| Hugging Face | `huggingface` | **free text-to-image** (FLUX / SDXL); token starts `hf_` |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 
 **Capability matrix** — what each provider can actually do (the gateway checks this before routing):
@@ -335,11 +336,19 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | Grok (xAI) | ✓ | ✓ `json_object` | ✓ | ✓ | ✓ | ✓ |
 | Groq | ✓ | ✓ `json_object` | — | ✓ | ✓ | ✓ |
 | Ollama | ✓ | ✓ `json_object` | — | ✓ | ✓ | — (local) |
+| Hugging Face | — | — | ✓ FLUX / SDXL (free) | — | — | ✓ (free `hf_`) |
 | rembg | — | — | — | — | — | — (local; background removal only) |
 
 > **Adapter note.** OpenAI, Grok, Groq, and Ollama are close but not identical, so each gets its **own adapter** (a shared base + per-provider subclass) rather than one catch-all: OpenAI uses strict `json_schema` structured output while the others use `json_object`; only OpenAI and Grok generate images (and xAI ignores `size`); each provider's error *body* maps to a typed code (`provider_rate_limited` / `provider_safety_blocked` / …); and **streaming (SSE)** and **tool-calling** are handled per provider (incl. Gemini's different `functionDeclarations` shape). Streaming and tool-calling are reachable today through the [OpenAI-compatible API](#openai-compatible-api).
 
-> **Free image generation.** Text is easy to get free (Groq/Gemini); **image generation is not** — Gemini Imagen and OpenAI `gpt-image-1` are paid, and there's no longer a no-signup free image API. Free routes: **Together AI** (`black-forest-labs/FLUX.1-schnell-Free`, OpenAI-compatible — use a `kind: openai` provider with `base_url: https://api.together.xyz/v1`), **Hugging Face** or **Cloudflare Workers AI** free tiers (each needs a small adapter), or a **local** Stable-Diffusion server (ComfyUI / AUTOMATIC1111 — note **Ollama does *not* generate images**; it's text/vision only).
+> **Free image generation.** Text is easy to get free (Groq/Gemini); **image generation is not** — Gemini Imagen and OpenAI `gpt-image-1` are paid. Synthr ships a built-in **Hugging Face** provider for **free** text-to-image: grab a free token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens), put it in `.env` as `HF_TOKEN`, and point the `image` feature at it:
+> ```yaml
+> providers:
+>   hf: { kind: huggingface, api_key: "${HF_TOKEN}" }
+> features:
+>   image: { provider: hf, model: black-forest-labs/FLUX.1-schnell }
+> ```
+> (HF free models can be rate-limited and "warm up" on first call — Synthr returns a clear `warming up, retry shortly` message. Other free routes: a local Stable-Diffusion server like ComfyUI/AUTOMATIC1111. **Ollama does *not* generate images** — it's text/vision only.)
 
 ## Configuration
 

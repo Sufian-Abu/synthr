@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-ProviderKind = Literal["openai", "grok", "groq", "ollama", "gemini", "rembg", "mock"]
+ProviderKind = Literal["openai", "grok", "groq", "ollama", "gemini", "huggingface", "rembg", "mock"]
 
 
 class GatewayCfg(BaseModel):

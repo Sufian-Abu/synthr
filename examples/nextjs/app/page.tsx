@@ -181,7 +181,7 @@ function ImageGen() {
   return (
     <div style={card}>
       <h3 style={h3}>🖼️ Image generation</h3>
-      <p style={sub}>Prompt → image. Needs an image-capable provider key (Gemini/OpenAI) on the gateway.</p>
+      <p style={sub}>Prompt → image. Free via Hugging Face — set <code>HF_TOKEN</code> on the gateway (first call may warm up the model).</p>
       <textarea style={ta} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       <button style={btn} onClick={go} disabled={busy}>Generate</button>
       <Result busy={busy} error={error}>

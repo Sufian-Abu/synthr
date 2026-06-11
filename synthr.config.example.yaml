@@ -37,6 +37,10 @@ providers:
   ollama:
     kind: ollama               # local, no key, $0
 
+  hf:
+    kind: huggingface          # free text-to-image — token at huggingface.co/settings/tokens
+    api_key: "${HF_TOKEN}"
+
   rembg:
     kind: rembg                # local background removal (needs the 'vision' extra)
 
@@ -65,8 +69,9 @@ features:
       blocked_keywords: []
 
   image:
-    provider: gemini                   # image-capable: gemini / openai / grok
-    model: imagen-4.0-generate-001     # Imagen needs a PAID Gemini plan; use openai (gpt-image-1) on the free tier
+    provider: hf                       # FREE text-to-image via Hugging Face (needs HF_TOKEN)
+    model: black-forest-labs/FLUX.1-schnell   # or stabilityai/stable-diffusion-xl-base-1.0
+    # paid alternatives: gemini (imagen-4.0-generate-001) or openai (gpt-image-1)
     frontend_safe: false               # cost control: backend-only by default
     cache:
       enabled: true

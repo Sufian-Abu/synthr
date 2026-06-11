@@ -5,6 +5,7 @@ from __future__ import annotations
 from ..config import Config
 from .base import Provider
 from .gemini import GeminiProvider
+from .huggingface import HuggingFaceProvider
 from .mock import MockProvider
 from .openai_compat import KIND_TO_CLASS
 from .rembg import RembgProvider
@@ -17,6 +18,8 @@ def build_providers(config: Config) -> dict[str, Provider]:
             providers[name] = KIND_TO_CLASS[cfg.kind](name, api_key=cfg.api_key, base_url=cfg.base_url)
         elif cfg.kind == "gemini":
             providers[name] = GeminiProvider(name, api_key=cfg.api_key)
+        elif cfg.kind == "huggingface":
+            providers[name] = HuggingFaceProvider(name, api_key=cfg.api_key, base_url=cfg.base_url)
         elif cfg.kind == "mock":
             providers[name] = MockProvider(name)
         elif cfg.kind == "rembg":

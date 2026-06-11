@@ -8,7 +8,7 @@ Features on the page:
 - **Form autofill** — describe something in plain words; an actual form fills in (brand, size, color, in-stock).
 - **Summarize**, **Translate**, **Rewrite**, **Generate**, **SEO metadata** — text in, result out.
 - **Chat** — the OpenAI-compatible `/v1/chat/completions` endpoint.
-- **Image generation** — prompt → image. Needs a **paid** image plan (Imagen on a paid Gemini account, or an OpenAI `gpt-image-1` key) — the free Gemini tier can't generate images.
+- **Image generation** — prompt → image. **Free** via Hugging Face: set `HF_TOKEN` on the gateway and point the `image` feature at `hf` (`black-forest-labs/FLUX.1-schnell`). First call may "warm up" the model. (Gemini Imagen / OpenAI `gpt-image-1` are the paid alternatives.)
 - **Background removal** — upload an image → transparent PNG. Local & free via `rembg`; install the gateway's `vision` extra (`pip install -e '.[vision]'`, which now pulls `onnxruntime`).
 
 ## How it talks to the gateway
