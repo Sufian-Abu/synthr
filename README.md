@@ -279,7 +279,7 @@ Each feature takes plain inputs and returns structured data — **no prompt engi
 | **Generate** | `POST /v1/generate` | Freeform prompt → text. The escape hatch when no named feature fits. |
 | **SEO metadata** | `POST /v1/seo` | Turns content into a page title, meta description, and keywords. |
 | **Classify** | `POST /v1/classify` | Single-label classification over caller-defined `labels` (+ confidence). |
-| **Extract** | `POST /v1/extract` | Pulls a **list** of structured records from text (fillForm's bigger sibling). |
+| **Extract** | `POST /v1/extract` | Structured extraction — a typed `schema` → one record, or `fields` → a list of records. |
 | **Moderate** | `POST /v1/moderate` | Content-safety flag + categories + reason. |
 | **Embed** | `POST /v1/embed` | Text → embedding vector(s), one string or a batch. |
 | **Image generation** | `POST /v1/image` | Generates an image from a text prompt. Backend-only by default. |

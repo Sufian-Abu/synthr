@@ -19,7 +19,17 @@ def test_classify_needs_two_labels(client: TestClient) -> None:
     assert r.status_code == 422  # validation: min 2 labels
 
 
-def test_extract_returns_items_list(client: TestClient) -> None:
+def test_extract_schema_returns_record(client: TestClient) -> None:
+    r = client.post(
+        "/v1/extract",
+        headers=SECRET,
+        json={"text": "Acme billed $1290 on 2026-02-01", "schema": {"amount": "number", "vendor": "string"}},
+    )
+    assert r.status_code == 200
+    assert set(r.json()["data"]) == {"amount", "vendor"}  # one record, the schema's fields
+
+
+def test_extract_fields_returns_items_list(client: TestClient) -> None:
     r = client.post(
         "/v1/extract",
         headers=SECRET,
@@ -27,6 +37,11 @@ def test_extract_returns_items_list(client: TestClient) -> None:
     )
     assert r.status_code == 200
     assert isinstance(r.json()["data"]["items"], list)
+
+
+def test_extract_requires_schema_or_fields(client: TestClient) -> None:
+    r = client.post("/v1/extract", headers=SECRET, json={"text": "nothing to go on"})
+    assert r.status_code == 422
 
 
 def test_moderate_shape(client: TestClient) -> None:

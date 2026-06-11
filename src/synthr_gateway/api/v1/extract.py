@@ -19,12 +19,13 @@ router = APIRouter()
 
 @router.post(
     "/extract",
-    summary="Extract structured records from text",
-    description="Returns every matching record (`items`) for the `fields` you define. Auth: `X-Project-Key` header.",
-    responses=feature_responses(
-        "extract",
-        {"items": [{"item": "Coffee", "qty": 2, "price": 9.0}, {"item": "Bagel", "qty": 1, "price": 3.5}]},
+    summary="Extract structured data from text",
+    description=(
+        "Two modes: pass a `schema` (`{field: type}`) to get **one** structured record, or "
+        "`fields` (a list of field defs) to get a **list** of records under `items`. "
+        "Auth: `X-Project-Key` header."
     ),
+    responses=feature_responses("extract", {"amount": 1290.0, "vendor": "Acme Corp", "date": "2026-02-01"}),
 )
 async def extract_route(
     body: ExtractRequest,

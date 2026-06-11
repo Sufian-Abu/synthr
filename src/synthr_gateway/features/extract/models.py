@@ -1,8 +1,13 @@
-"""Request model for extract (pull a LIST of structured records from text)."""
+"""Request model for extract — pull structured data from text.
+
+Two modes:
+- `schema` (a {field: type} map) → **one** structured record, returned directly.
+- `fields` (a list of field defs) → a **list** of records under `items`.
+"""
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ExtractField(BaseModel):
@@ -13,19 +18,25 @@ class ExtractField(BaseModel):
 
 class ExtractRequest(BaseModel):
     text: str = Field(min_length=1)
-    fields: list[ExtractField] = Field(min_length=1)  # the shape of each record
+    # one record: {"amount": "number", "vendor": "string", "date": "string"}
+    schema_: dict[str, str] | None = Field(default=None, alias="schema")
+    # many records: each row has these fields
+    fields: list[ExtractField] | None = None
 
     model_config = {
+        "populate_by_name": True,
         "json_schema_extra": {
             "examples": [
                 {
-                    "fields": [
-                        {"name": "item", "type": "string"},
-                        {"name": "qty", "type": "integer"},
-                        {"name": "price", "type": "number"},
-                    ],
-                    "text": "2x Coffee $9.00, 1x Bagel $3.50, 3x Water $6",
+                    "text": "Invoice 412 — Acme Corp billed $1,290.00 on 2026-02-01.",
+                    "schema": {"amount": "number", "vendor": "string", "date": "string"},
                 }
             ]
-        }
+        },
     }
+
+    @model_validator(mode="after")
+    def _need_one(self) -> ExtractRequest:
+        if not self.schema_ and not self.fields:
+            raise ValueError("provide 'schema' (one record) or 'fields' (a list of records)")
+        return self
