@@ -5,9 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from .chat import router as chat_router
+from .classify import router as classify_router
+from .extract import router as extract_router
 from .fillform import router as fillform_router
 from .generate import router as generate_router
 from .image import router as image_router
+from .moderate import router as moderate_router
 from .removebg import router as removebg_router
 from .rewrite import router as rewrite_router
 from .seo import router as seo_router
@@ -24,6 +27,9 @@ for r in (
     generate_router,
     rewrite_router,
     seo_router,
+    classify_router,
+    extract_router,
+    moderate_router,
     chat_router,
 ):
     router.include_router(r)

@@ -52,6 +52,18 @@ features:
     provider: mock
     frontend_safe: true
     cache: { enabled: false }
+  classify:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
+  extract:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
+  moderate:
+    provider: mock
+    frontend_safe: true
+    cache: { enabled: false }
 projects:
   demo:
     keys:
