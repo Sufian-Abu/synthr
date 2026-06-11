@@ -163,8 +163,8 @@ features:
     cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
 
   ocr:
-    provider: gemini                   # vision (image → text): gemini / openai / grok
-    model: gemini-flash-latest
+    provider: ollama                   # vision (image → text): ollama (free, local) / gemini / openai / grok
+    model: llama3.2-vision             # any vision model — swap freely (llava, minicpm-v, gemini-flash-latest, …)
     frontend_safe: false
     cache: { enabled: true, mode: exact, ttl_minutes: 1440 }
 

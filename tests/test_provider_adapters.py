@@ -9,7 +9,7 @@ import pytest
 from synthr_gateway.core.errors import SynthrError
 from synthr_gateway.providers import gemini as gm
 from synthr_gateway.providers import openai_compat as oc
-from synthr_gateway.providers.types import Message
+from synthr_gateway.providers.types import Capability, Message
 
 SCHEMA = {"type": "object", "properties": {"a": {"type": "string"}}}
 
@@ -128,3 +128,17 @@ async def test_openai_image_includes_size(monkeypatch) -> None:
 async def test_groq_has_no_image_capability() -> None:
     with pytest.raises(SynthrError):
         await oc.GroqProvider("groq", api_key="k").generate_image("a cat")
+
+
+# ── vision (OCR) ───────────────────────────────────────────────────────────
+def test_ollama_advertises_vision() -> None:
+    assert Capability.VISION in oc.OllamaProvider("ollama").capabilities
+
+
+async def test_ollama_vision_builds_image_payload(monkeypatch) -> None:
+    cap = _capture_post_json(monkeypatch, oc, {"choices": [{"message": {"content": "HELLO"}}]})
+    result = await oc.OllamaProvider("ollama").vision("read this", image_b64="QUJD", mime="image/png")
+    assert result.text == "HELLO"
+    content = cap["json"]["messages"][0]["content"]
+    assert content[0] == {"type": "text", "text": "read this"}
+    assert content[1]["image_url"]["url"] == "data:image/png;base64,QUJD"

@@ -402,7 +402,7 @@ Pick per feature in config; swap with a one-line change, zero app code.
 | OpenAI | `openai` | text · images · embeddings · **vision** |
 | Grok (xAI) | `grok` | text · images · **vision**; keys start `xai-` |
 | Groq | `groq` | fast inference; keys start `gsk_` |
-| Ollama | `ollama` | local, no key, $0 |
+| Ollama | `ollama` | local, no key, $0; text · embeddings · **vision** (e.g. `llama3.2-vision`) |
 | Hugging Face | `huggingface` | **free text-to-image** (FLUX / SDXL); token starts `hf_` |
 | rembg | `rembg` | local background removal (the `vision` extra) |
 

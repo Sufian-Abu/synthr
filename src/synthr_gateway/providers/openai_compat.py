@@ -307,8 +307,9 @@ class GroqProvider(OpenAICompatProvider):
 
 class OllamaProvider(OpenAICompatProvider):
     kind = "ollama"
-    supports_images = False  # text-only via the OpenAI-compat endpoint
+    supports_images = False  # no text-to-image, but vision (image-in) works with a vision model
     supports_embeddings = True
+    supports_vision = True  # e.g. llama3.2-vision, llava — model is chosen in config
     embed_default_model = "nomic-embed-text"
 
     def _classify_error(self, status: int, text: str, headers=None) -> errors.SynthrError | None:
