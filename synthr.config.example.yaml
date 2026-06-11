@@ -203,7 +203,7 @@ projects:
           - http://localhost:3000
     limits:
       per_user:
-        daily_requests: 50
+        daily_requests: 1000
     # Hard caps — the project is rejected (HTTP 402) once over. Omit any you don't want.
     budget:
       daily_usd: 5.0
