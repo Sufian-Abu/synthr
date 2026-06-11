@@ -32,7 +32,7 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 
 ## Contents
 
-[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -87,8 +87,16 @@ And the built-in **dashboard** answers "what is AI costing us?" — requests, ca
 Synthr is a **self-hosted gateway that turns AI into ready-made features**. Instead of standing up a model and engineering prompts, your app calls a capability — Synthr owns the prompt, the provider, and the plumbing behind it.
 
 ```python
+# The usual way — one generic model call, then you build the rest yourself:
+resp = model.chat([...])      # write the prompt · parse JSON · hide the key · cache · rate-limit · track cost
+
+# With Synthr — call the feature, get structured data; the rest is already handled:
 ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 # → {"values": {"brand": "Nike", "color": "red", "size": 10}, "unfilled": []}
+
+ai.extract(text=invoice, schema={"amount": "number", "vendor": "string"})
+ai.seo(content=page)
+ai.remove_background(image=img)
 ```
 
 **Ready-made features, out of the box:**
@@ -111,6 +119,18 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 - **Internal-tools / platform teams** giving product engineers safe, self-serve AI features without handing out raw provider keys.
 
 If you call a model from more than one codebase, Synthr is the shared layer that keeps the plumbing in one place.
+
+## Frontend-safe AI
+
+Calling AI from a browser usually means putting a provider key in client code — where anyone can open devtools and drain your account. Synthr makes browser calls safe with **public project keys** (`pk_proj_…`): origin-locked, feature-gated, and safe to ship in a frontend bundle. The real provider key never leaves the gateway.
+
+```
+Browser ──(public pk_ key, origin-locked)──▶ Synthr Gateway ──(real provider key)──▶ Gemini · OpenAI · …
+  no provider key in the bundle               checks origin + key,                    key never leaves
+                                              runs guardrails + limits                 the server
+```
+
+A `pk_` key works only from an allow-listed `Origin` and only for features marked `frontend_safe`; backends and scripts use a full-access secret `sk_` key. So a SaaS frontend can call AI **directly** — no backend proxy to build, no key to leak. (Synthr also serves CORS for exactly those origins, so the browser call actually goes through.)
 
 ## Architecture
 
