@@ -1,4 +1,4 @@
-"""Regex-based input guardrails (SPEC.md §4.4). Fast, free, ~90% effective.
+"""Regex-based input guardrails. Fast, free, ~90% effective.
 
 Raises `guardrail_blocked` before the prompt is sent to any provider.
 """

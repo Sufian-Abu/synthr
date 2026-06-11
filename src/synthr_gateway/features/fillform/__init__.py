@@ -1,4 +1,4 @@
-"""fillForm — schema-constrained form autofill (SPEC.md §6.1)."""
+"""fillForm — schema-constrained form autofill."""
 
 from .models import FillFormRequest, FormField
 from .service import fill_form

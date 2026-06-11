@@ -27,13 +27,13 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 
 > **▶ See it running:** the [**Next.js playground**](examples/nextjs/) calls every feature live (form autofill, image, background removal, …) through one gateway — start there.
 
-> **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Status & roadmap](#status--roadmap) for what's done and what's next.
+> **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Status](#status) for what's done and what's next.
 
 ---
 
 ## Contents
 
-[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Workflows](#workflows) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Frontend-safe AI](#frontend-safe-ai) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Workflows](#workflows) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status](#status)
 
 ---
 
@@ -229,7 +229,7 @@ A full **Next.js** example — secret key on the server, public key in the brows
 | `synthr keygen` | Mint a project key — add `--public` for a browser-safe key |
 | `synthr status` | Ping a running gateway and print its health |
 
-Full reference — auth, every endpoint, error codes — is in **[USAGE.md](USAGE.md)**.
+Full, always-current reference — every endpoint, request/response schema, and error code — is the **API docs at [`/redoc`](http://localhost:8000/redoc)** (generated from the live OpenAPI spec).
 
 ## OpenAI-compatible API
 
@@ -348,7 +348,7 @@ curl …/v1/chat/completions -H "Authorization: Bearer sk_proj_…" \
   -d '{"model":"<your-model>","messages":[{"role":"user","content":"hi"}]}'
 ```
 
-(Every `curl …` above also needs `-H "X-Project-Key: sk_proj_…"` and `-H "Content-Type: application/json"`. The full reference is in [USAGE.md](USAGE.md).)
+(Every `curl …` above also needs `-H "X-Project-Key: sk_proj_…"` and `-H "Content-Type: application/json"`. Full schemas are in the API docs at [`/redoc`](http://localhost:8000/redoc).)
 
 ## Workflows
 
@@ -483,9 +483,9 @@ mypy                    # type-check
 
 `pip install -e sdk/python && pytest sdk/python` runs the 3 SDK tests. All three checks (lint · type-check · tests) run in **CI** on every push and PR — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
-## Status & roadmap
+## Status
 
-Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It's a **working MVP, not a hardened production system**: it's built for a single team on one box (SQLite, single process), not yet for untrusted or high-concurrency multi-tenant traffic. **[ROADMAP.md](ROADMAP.md)** tracks the path there (Postgres, Redis, durable job queue, tracing, published SDKs), and the security model is in **[SECURITY.md](SECURITY.md)**.
+Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It's a **working MVP, not a hardened production system**: it's built for a single team on one box (SQLite, single process), not yet for untrusted or high-concurrency multi-tenant traffic. The path there — Postgres, Redis, a durable job queue, tracing, and published SDKs — is tracked in the issues; the security model is in **[SECURITY.md](SECURITY.md)**.
 
 A few things are deliberately not done yet:
 

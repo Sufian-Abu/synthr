@@ -21,7 +21,7 @@ report a problem. Read it before exposing a gateway to untrusted traffic.
 
 ## Known limitations — do NOT assume these are handled
 
-These are tracked in [ROADMAP.md](ROADMAP.md) under "Production hardening". Until they land:
+These are deliberately not hardened yet (see **Status** in the README). Until they land:
 
 | Area | Current state | Risk |
 |---|---|---|

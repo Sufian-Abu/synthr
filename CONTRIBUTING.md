@@ -65,6 +65,5 @@ support via `capabilities` + `supports_streaming` / `supports_tools`.
 ## Pull requests
 
 - One focused change per PR; keep the three checks green.
-- Update docs when behavior changes (README, USAGE.md, and the capability matrix if you
-  touched a provider).
+- Update docs when behavior changes (the README, and the providers table if you touched a provider).
 - Don't commit secrets — `.env` and `synthr.config.yaml` are git-ignored.

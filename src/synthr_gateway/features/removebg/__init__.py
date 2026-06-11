@@ -1,4 +1,4 @@
-"""removeBackground — strip an image's background (SPEC.md §6.3)."""
+"""removeBackground — strip an image's background."""
 
 from .models import RemoveBackgroundRequest
 from .service import remove_background

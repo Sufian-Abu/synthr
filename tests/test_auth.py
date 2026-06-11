@@ -1,4 +1,4 @@
-"""Dual-key / origin enforcement (SPEC.md §2)."""
+"""Dual-key / origin enforcement."""
 
 from __future__ import annotations
 

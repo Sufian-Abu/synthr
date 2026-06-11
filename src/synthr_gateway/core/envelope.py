@@ -1,4 +1,4 @@
-"""Unified response envelope (SPEC.md §4). Every feature returns the same shape."""
+"""Unified response envelope. Every feature returns the same shape."""
 
 from __future__ import annotations
 

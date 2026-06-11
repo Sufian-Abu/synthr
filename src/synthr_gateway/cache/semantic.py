@@ -1,4 +1,4 @@
-"""TF-IDF semantic cache (SPEC.md §4.2). Opt-in per feature; correctness-first.
+"""TF-IDF semantic cache. Opt-in per feature; correctness-first.
 
 A query hits only if its TF-IDF cosine similarity to a stored prompt clears the feature's
 threshold. Needs scikit-learn (the `semantic` extra); without it, it degrades to exact-text

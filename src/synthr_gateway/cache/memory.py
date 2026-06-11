@@ -1,4 +1,4 @@
-"""In-memory exact-match cache (SPEC.md §5).
+"""In-memory exact-match cache.
 
 Exact mode only: key = hash of (feature + normalized input). Zero false hits.
 Similarity/embedding caching is a deliberate Phase-2 add and stays opt-in per feature.

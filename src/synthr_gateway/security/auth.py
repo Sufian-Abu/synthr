@@ -1,4 +1,4 @@
-"""Project-key auth + dual-key / origin model (SPEC.md §2).
+"""Project-key auth + dual-key / origin model.
 
 - secret keys (sk_proj_): backend/REST, full access.
 - public keys  (pk_proj_): browser-safe — must come from an allowed origin and may only

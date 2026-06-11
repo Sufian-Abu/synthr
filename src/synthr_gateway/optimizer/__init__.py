@@ -1,4 +1,4 @@
-"""Rule-based, lossless prompt compression (SPEC.md §4.5)."""
+"""Rule-based, lossless prompt compression."""
 
 from .compress import compress
 

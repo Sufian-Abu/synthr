@@ -1,4 +1,4 @@
-"""Stable error model. Codes match SPEC.md §4 and are part of the public contract."""
+"""Stable error model. Codes are part of the public contract."""
 
 from __future__ import annotations
 

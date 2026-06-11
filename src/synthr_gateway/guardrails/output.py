@@ -1,4 +1,4 @@
-"""Output guardrails: redact PII that leaks into a response (SPEC.md §4.4).
+"""Output guardrails: redact PII that leaks into a response.
 
 Config-gated per feature (`redact_output_pii`) so it's only enabled on text features —
 it walks string values and replaces detected PII with placeholders. Never enable it for

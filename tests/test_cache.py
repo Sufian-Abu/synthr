@@ -1,4 +1,4 @@
-"""Exact-match cache behaviour (SPEC.md §5)."""
+"""Exact-match cache behaviour."""
 
 from __future__ import annotations
 

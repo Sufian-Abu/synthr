@@ -1,4 +1,4 @@
-"""image — text-to-image generation (SPEC.md §6.2)."""
+"""image — text-to-image generation."""
 
 from .models import ImageRequest
 from .service import generate_image

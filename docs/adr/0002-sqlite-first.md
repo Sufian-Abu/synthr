@@ -1,6 +1,6 @@
 # ADR 0002 — SQLite first
 
-**Status:** accepted (revisit for production — see ROADMAP v0.2)
+**Status:** accepted (revisit for production — Postgres + Redis)
 
 ## Context
 

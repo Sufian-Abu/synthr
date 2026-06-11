@@ -33,7 +33,7 @@ Self-hosted, batteries-included **AI-capabilities** gateway.
 - **Dashboard:** [`/dashboard`](/dashboard) · **Health:** [`/health`](/health)
 
 This is a read-only API reference. Call endpoints from the SDKs, `curl`, or your app —
-see the project README / USAGE.md.
+see the project README.
 """
 
 
