@@ -26,13 +26,13 @@ You call a feature **by name**; Synthr owns the prompt, picks the provider, and 
 
 > **▶ See it running:** the [**Next.js playground**](examples/nextjs/) calls every feature live (form autofill, image, background removal, …) through one gateway — start there.
 
-> **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Maturity & limitations](#maturity--limitations) for the honest, line-by-line breakdown.
+> **Status: working MVP — self-host, learn, and build on it.** Every piece runs end-to-end, but it's tuned for a single team on one box, not yet hardened for untrusted or high-concurrency production. See [Status & roadmap](#status--roadmap) for what's done and what's next.
 
 ---
 
 ## Contents
 
-[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Why Synthr](#why-synthr--vs-openai-sdk-litellm-langchain) · [Maturity & limitations](#maturity--limitations) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
+[The problem](#the-problem) · [What it solves](#what-we-built-and-what-it-solves) · [See it](#see-it-in-action) · [What Synthr does](#what-synthr-does) · [Who is this for?](#who-is-this-for) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Calling it](#calling-it) · [OpenAI-compatible API](#openai-compatible-api) · [Features](#features) · [Providers](#providers) · [Configuration](#configuration) · [Under the hood](#under-the-hood) · [Dashboard](#dashboard) · [Project layout](#project-layout) · [Status & roadmap](#status--roadmap)
 
 ---
 
@@ -111,41 +111,6 @@ ai.fill_form(fields=[...], context="Nike Air Max, red, size 10")
 - **Internal-tools / platform teams** giving product engineers safe, self-serve AI features without handing out raw provider keys.
 
 If you call a model from more than one codebase, Synthr is the shared layer that keeps the plumbing in one place.
-
-## Why Synthr — vs OpenAI SDK, LiteLLM, LangChain
-
-These all operate at the **model** layer — they hand you a call and you build the feature, the policy, and the key custody yourself, in every project. Synthr operates at the **feature** layer: you call `fill_form(...)`, and auth, caching, limits, guardrails, fallback, and cost tracking are already applied.
-
-| | **Provider SDK** (OpenAI/Gemini) | **LiteLLM** | **LangChain** | **Synthr** |
-|---|:--:|:--:|:--:|:--:|
-| Unit you call | raw `chat.completions` | raw `chat.completions` | chains/agents you build | **a named feature** (`fillForm`, `summarize`, …) |
-| Who writes the prompt | you, per feature | you, per feature | you, per chain | **Synthr (built in)** |
-| Provider keys | in each app | in the app/proxy | in the app | **only in the gateway** |
-| Browser-safe calls | ✗ (key exposed) | ✗ | ✗ | **✓ public keys + origin allowlist** |
-| Caching / rate limit / guardrails | you build each | partial (cache, budgets) | you build each | **built in, every call** |
-| Cost visibility | the bill | ✓ logging | ✗ | **per-project dashboard** |
-| Swap provider | code change | config | code change | **one config line** |
-
-LiteLLM is the closest, but it's still a *router* — it unifies the pipe; you write the features. **Synthr ships the features.** And if you're already on the OpenAI SDK, you don't have to choose: **point its base URL at Synthr** and keep your code (see [OpenAI-compatible API](#openai-compatible-api)).
-
-## Maturity & limitations
-
-Synthr runs end-to-end today, but be clear-eyed about where it is. An honest map, not a sales sheet:
-
-| Subsystem | Today (MVP) | What production would need |
-|---|---|---|
-| **Storage** | SQLite, single connection + lock | Postgres + connection pool |
-| **Cache / rate-limit** | in-process + SQLite | Redis, shared across workers |
-| **Auth** | hashed keys · scopes · expiry · revoke · audit-on-failure | online rotation · per-key analytics · secret-manager |
-| **Guardrails** | regex PII / keyword / length | ML PII (e.g. Presidio) + policy engine |
-| **Fallback** | timeout / rate-limit / invalid → fallback **+ circuit breaker** | per-provider health endpoint, configurable policies |
-| **Token optimizer** | whitespace compression | real token reduction (optional) |
-| **Slow tasks** (image / bg) | **background jobs** (thread-pool worker) | durable queue (arq/Celery) + retries + webhooks |
-| **Observability** | usage log · dashboard · **per-project budgets** | tracing, metrics, alerting |
-| **Delivery** | install from this repo | published SDKs · automated releases |
-| **Providers** | per-provider adapters (JSON mode · image · typed errors · streaming · tools) | broader model coverage · live provider conformance tests |
-
-**Good for:** internal tools, prototypes, single-team deployments, and learning how an AI gateway fits together. **Not yet for:** untrusted multi-tenant traffic or high-concurrency production without the hardening above. The path to closing these gaps lives in **[ROADMAP.md](ROADMAP.md)**; the security model is in **[SECURITY.md](SECURITY.md)**.
 
 ## Architecture
 
@@ -477,13 +442,14 @@ mypy                    # type-check
 
 ## Status & roadmap
 
-Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It is a **working MVP, not a hardened production system**. The [Maturity & limitations](#maturity--limitations) table above is the honest breakdown, and **[ROADMAP.md](ROADMAP.md)** tracks the path to production: Postgres, Redis, background queue, circuit breaker, tracing, per-project budgets, and published SDKs.
+Synthr runs end-to-end — every feature, the full request pipeline, the dashboard, both SDKs, Docker. It's a **working MVP, not a hardened production system**: it's built for a single team on one box (SQLite, single process), not yet for untrusted or high-concurrency multi-tenant traffic. **[ROADMAP.md](ROADMAP.md)** tracks the path there (Postgres, Redis, durable job queue, tracing, published SDKs), and the security model is in **[SECURITY.md](SECURITY.md)**.
 
-Deliberately not done yet:
+A few things are deliberately not done yet:
 
 - **SDKs aren't published** to PyPI/npm — install from the `sdk/` folders.
-- The **token optimizer** is lossless whitespace compression — honest and conservative, not a magic 30%.
+- The **token optimizer** is lossless whitespace compression — conservative, not a magic 30%.
 - The **semantic cache** uses TF-IDF; swapping in embeddings is a clean upgrade.
+- **Guardrails** are regex-based; **storage** is SQLite. Fine for a single team, not for hostile multi-tenant load.
 
 ## Contributing
 
